@@ -1,103 +1,218 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import staticConsultasData from '../data/consultasData.json';
 
-// Formateador numérico
+// Formato numérico seguro
 function fmtNum(n) {
   if (n === null || n === undefined || isNaN(n)) return '0';
-  return Math.round(Number(n)).toLocaleString('en-US');
+  return Math.round(Number(n)).toLocaleString('es-PE');
 }
 
+// Configuración de los 4 Equipos Técnicos institucionales
+const EQUIPOS_CONFIG = {
+  OPJ: {
+    id: 'OPJ',
+    nombre: 'OPJ (No Penales)',
+    badge: '74 Órganos',
+    icon: '⚖️',
+    color: '#38bdf8',
+    grad: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(2, 132, 199, 0.08) 100%)',
+    border: 'rgba(56, 189, 248, 0.4)',
+    desc: 'Órganos Jurisdiccionales No Penales (Civil, Laboral, Familia, Paz Letrado).',
+    labelMeta: 'Meta SIE PJ',
+    labelAvance: '% de Avance',
+    insightPrefix: 'Meta Estándar R.A. 90-2025',
+    idealFijo: null
+  },
+  UETI: {
+    id: 'UETI',
+    nombre: 'UETI (Penal)',
+    badge: '52 Órganos',
+    icon: '⚖️',
+    color: '#a855f7',
+    grad: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(126, 34, 206, 0.08) 100%)',
+    border: 'rgba(168, 85, 247, 0.4)',
+    desc: 'Unidad de Equipo Técnico Institucional del Código Procesal Penal.',
+    labelMeta: 'Meta Preliminar (Reajuste)',
+    labelAvance: '% de Avance (%Prod)',
+    insightPrefix: 'Meta Estándar R.A. 90-2025',
+    idealFijo: 100
+  },
+  FLAGRANCIA: {
+    id: 'FLAGRANCIA',
+    nombre: 'Flagrancia',
+    badge: '14 Órganos',
+    icon: '⚡',
+    color: '#f59e0b',
+    grad: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.08) 100%)',
+    border: 'rgba(245, 158, 11, 0.4)',
+    desc: 'Unidades de Flagrancia Delictiva (JIP y JUP Flagrancia).',
+    labelMeta: 'Meta Preliminar (Meta)',
+    labelAvance: '% de Avance (Avance de meta)',
+    insightPrefix: 'Meta Estándar Flagrancia',
+    idealFijo: 100
+  },
+  VIOLENCIA: {
+    id: 'VIOLENCIA',
+    nombre: 'Violencia',
+    badge: '25 Órganos',
+    icon: '🛡️',
+    color: '#ec4899',
+    grad: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(190, 24, 93, 0.08) 100%)',
+    border: 'rgba(236, 72, 153, 0.4)',
+    desc: 'Módulo de Violencia Familiar contra las Mujeres (PPOR 1002).',
+    labelMeta: 'Meta Preliminar',
+    labelAvance: '% de Avance',
+    insightPrefix: 'Estándar PPOR 1002',
+    idealFijo: null
+  }
+};
+
 export default function ConsultaMovilView({ onBackToDashboard }) {
-  // Estados de navegación: 'bienvenida' | 'seleccion' | 'kpis'
+  // Pantallas: 'bienvenida' | 'equipos' | 'seleccion' | 'kpis'
   const [screen, setScreen] = useState('bienvenida');
 
-  // Datos consolidados (165 dependencias activas, 7 distritos, 30 sedes)
+  // Equipo Técnico seleccionado: 'OPJ' | 'UETI' | 'FLAGRANCIA' | 'VIOLENCIA'
+  const [selectedEquipo, setSelectedEquipo] = useState('OPJ');
+
+  // Datos consolidados (165 dependencias activas)
   const [data, setData] = useState(staticConsultasData);
 
   // Estados de selección de filtros
-  const [selectedDistrito, setSelectedDistrito] = useState('Ate');
-  const [selectedSede, setSelectedSede] = useState('La merced');
-  const [selectedDepId, setSelectedDepId] = useState(7028);
+  const [selectedDistrito, setSelectedDistrito] = useState('');
+  const [selectedSede, setSelectedSede] = useState('');
+  const [selectedDepId, setSelectedDepId] = useState(null);
   const [selectedMes, setSelectedMes] = useState(9); // Setiembre por defecto
   const [selectedAnio, setSelectedAnio] = useState(2026);
   const [searchFilter, setSearchFilter] = useState('');
 
   // Toast de notificación
   const [toastMessage, setToastMessage] = useState('');
-
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 2500);
   };
 
-  // 1. Sedes disponibles en el distrito actual
-  const sedesDelDistrito = useMemo(() => {
-    if (!data || !data.sedes_por_distrito) return [];
-    return data.sedes_por_distrito[selectedDistrito] || [];
-  }, [data, selectedDistrito]);
+  // Carga reactiva de datos en tiempo real si el backend está activo (localhost / red)
+  useEffect(() => {
+    try {
+      fetch('/api/consulta-movil/datos?fresh=true')
+        .then(res => (res.ok ? res.json() : null))
+        .then(json => {
+          if (json && json.success && json.data) {
+            setData(json.data);
+          }
+        })
+        .catch(() => {});
+    } catch (_) {}
+  }, []);
 
-  // Sede efectiva garantizada (sin desfase de estado)
-  const sedeEfectiva = useMemo(() => {
-    if (sedesDelDistrito.includes(selectedSede)) return selectedSede;
-    return sedesDelDistrito[0] || '';
-  }, [sedesDelDistrito, selectedSede]);
-
-  // 2. Dependencias disponibles filtradas
-  const dependenciasDisponibles = useMemo(() => {
+  // 1. Filtrar las dependencias exclusivas del Equipo Técnico seleccionado
+  const dependenciasDelEquipo = useMemo(() => {
     if (!data || !data.dependencias) return [];
-    let list = data.dependencias.filter(d => d.distrito === selectedDistrito);
-    if (sedeEfectiva) {
-      list = list.filter(d => d.sede === sedeEfectiva);
-    }
+    return data.dependencias.filter(d => (d.equipo_tecnico || 'OPJ') === selectedEquipo);
+  }, [data, selectedEquipo]);
+
+  // 2. Distritos disponibles para este Equipo Técnico
+  const distritosDisponibles = useMemo(() => {
+    const set = new Set();
+    dependenciasDelEquipo.forEach(d => {
+      if (d.distrito) set.add(d.distrito);
+    });
+    return Array.from(set).sort();
+  }, [dependenciasDelEquipo]);
+
+  // Distrito efectivo garantizado
+  const distritoEfectivo = useMemo(() => {
+    if (distritosDisponibles.includes(selectedDistrito)) return selectedDistrito;
+    return distritosDisponibles[0] || '';
+  }, [distritosDisponibles, selectedDistrito]);
+
+  // 3. Sedes disponibles para el distrito y equipo actual
+  const sedesDisponibles = useMemo(() => {
+    const set = new Set();
+    dependenciasDelEquipo
+      .filter(d => d.distrito === distritoEfectivo)
+      .forEach(d => {
+        if (d.sede) set.add(d.sede);
+      });
+    return Array.from(set).sort();
+  }, [dependenciasDelEquipo, distritoEfectivo]);
+
+  // Sede efectiva garantizada
+  const sedeEfectiva = useMemo(() => {
+    if (sedesDisponibles.includes(selectedSede)) return selectedSede;
+    return sedesDisponibles[0] || '';
+  }, [sedesDisponibles, selectedSede]);
+
+  // 4. Dependencias filtradas por distrito y sede para el equipo
+  const dependenciasFiltradas = useMemo(() => {
+    let list = dependenciasDelEquipo.filter(d =>
+      d.distrito === distritoEfectivo && d.sede === sedeEfectiva
+    );
     if (searchFilter.trim()) {
       const q = searchFilter.toLowerCase().trim();
-      list = list.filter(d =>
-        d.dependencia.toLowerCase().includes(q) ||
-        String(d.n_dependencia).includes(q) ||
-        (d.especialidad && d.especialidad.toLowerCase().includes(q))
-      );
+      list = list.filter(d => d.dependencia.toLowerCase().includes(q));
     }
     return list;
-  }, [data, selectedDistrito, sedeEfectiva, searchFilter]);
+  }, [dependenciasDelEquipo, distritoEfectivo, sedeEfectiva, searchFilter]);
 
-  // 3. Dependencia actualmente seleccionada (Garantía de nunca ser null si hay datos)
+  // Dependencia seleccionada
   const dependenciaActual = useMemo(() => {
-    if (!data || !data.dependencias || data.dependencias.length === 0) return null;
-    const match = dependenciasDisponibles.find(d => String(d.n_dependencia) === String(selectedDepId));
-    if (match) return match;
-    if (dependenciasDisponibles.length > 0) return dependenciasDisponibles[0];
-    return data.dependencias.find(d => d.distrito === selectedDistrito) || data.dependencias[0];
-  }, [data, dependenciasDisponibles, selectedDepId, selectedDistrito]);
+    if (!dependenciasFiltradas.length) return null;
+    if (selectedDepId) {
+      const found = dependenciasFiltradas.find(d => d.n_dependencia === selectedDepId);
+      if (found) return found;
+    }
+    return dependenciasFiltradas[0];
+  }, [dependenciasFiltradas, selectedDepId]);
 
-  // Manejo de cambio de Distrito con sincronización inmediata
+  // Manejador al seleccionar un Equipo Técnico desde la pantalla 'equipos'
+  const handleSeleccionarEquipo = (eqId) => {
+    setSelectedEquipo(eqId);
+    setSearchFilter('');
+    const depsEq = (data?.dependencias || []).filter(d => (d.equipo_tecnico || 'OPJ') === eqId);
+    const primerDist = depsEq[0]?.distrito || '';
+    const sedesEq = depsEq.filter(d => d.distrito === primerDist).map(d => d.sede);
+    const primeraSede = sedesEq[0] || '';
+    const primerDep = depsEq.find(d => d.distrito === primerDist && d.sede === primeraSede);
+
+    setSelectedDistrito(primerDist);
+    setSelectedSede(primeraSede);
+    setSelectedDepId(primerDep ? primerDep.n_dependencia : null);
+    setScreen('seleccion');
+  };
+
+  // Manejador de cambio de distrito
   const handleDistritoChange = (nuevoDistrito) => {
     setSelectedDistrito(nuevoDistrito);
-    const nuevasSedes = data?.sedes_por_distrito?.[nuevoDistrito] || [];
-    const primeraSede = nuevasSedes[0] || '';
-    setSelectedSede(primeraSede);
     setSearchFilter('');
+    const sedesDelDist = dependenciasDelEquipo
+      .filter(d => d.distrito === nuevoDistrito)
+      .map(d => d.sede);
+    const nuevaSede = sedesDelDist[0] || '';
+    setSelectedSede(nuevaSede);
 
-    const deps = (data?.dependencias || []).filter(d =>
-      d.distrito === nuevoDistrito && (!primeraSede || d.sede === primeraSede)
+    const deps = dependenciasDelEquipo.filter(d =>
+      d.distrito === nuevoDistrito && d.sede === nuevaSede
     );
     if (deps.length > 0) {
       setSelectedDepId(deps[0].n_dependencia);
     }
   };
 
-  // Manejo de cambio de Sede con sincronización inmediata
+  // Manejador de cambio de sede
   const handleSedeChange = (nuevaSede) => {
     setSelectedSede(nuevaSede);
     setSearchFilter('');
-    const deps = (data?.dependencias || []).filter(d =>
-      d.distrito === selectedDistrito && d.sede === nuevaSede
+    const deps = dependenciasDelEquipo.filter(d =>
+      d.distrito === distritoEfectivo && d.sede === nuevaSede
     );
     if (deps.length > 0) {
       setSelectedDepId(deps[0].n_dependencia);
     }
   };
 
-  // 4. KPIs seguros del mes seleccionado
+  // 5. KPIs seguros del mes seleccionado
   const kpisActuales = useMemo(() => {
     if (!dependenciaActual || !dependenciaActual.meses) return null;
     const mesKey = String(selectedMes);
@@ -107,12 +222,14 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     return primerMes || null;
   }, [dependenciaActual, selectedMes]);
 
-  // Estilos del Nivel de Cumplimiento / Resolutivo
+  const equipoConfig = EQUIPOS_CONFIG[selectedEquipo] || EQUIPOS_CONFIG.OPJ;
+
+  // Estilos del Nivel Resolutivo / Cumplimiento
   const nivelConfig = useMemo(() => {
     const niv = String(kpisActuales?.nivel || '').toUpperCase();
     if (niv.includes('MUY BUENO')) {
       return {
-        bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.25) 100%)',
+        bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.28) 100%)',
         border: '#10b981',
         text: '#34d399',
         badgeBg: '#059669',
@@ -123,7 +240,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
     if (niv.includes('BUENO')) {
       return {
-        bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.25) 100%)',
+        bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.28) 100%)',
         border: '#f59e0b',
         text: '#fbbf24',
         badgeBg: '#d97706',
@@ -134,7 +251,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
     if (niv.includes('BAJO')) {
       return {
-        bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.25) 100%)',
+        bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(220, 38, 38, 0.28) 100%)',
         border: '#ef4444',
         text: '#f87171',
         badgeBg: '#dc2626',
@@ -144,7 +261,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
       };
     }
     return {
-      bg: 'linear-gradient(135deg, rgba(148, 163, 184, 0.15) 0%, rgba(100, 116, 139, 0.25) 100%)',
+      bg: 'linear-gradient(135deg, rgba(148, 163, 184, 0.18) 0%, rgba(100, 116, 139, 0.28) 100%)',
       border: '#64748b',
       text: '#94a3b8',
       badgeBg: '#475569',
@@ -154,7 +271,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     };
   }, [kpisActuales]);
 
-  // Función para cerrar sesión / salir
+  // Cerrar sesión / salir
   const handleCerrarSesion = () => {
     setScreen('bienvenida');
     setSearchFilter('');
@@ -164,8 +281,14 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   // Copiar resumen al portapapeles
   const handleCopiarResumen = () => {
     if (!dependenciaActual || !kpisActuales) return;
+    const metaLabel = equipoConfig.labelMeta;
+    const avanceLabel = equipoConfig.labelAvance;
+    const metaVal = (selectedEquipo === 'OPJ' ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar) : kpisActuales.meta_preliminar);
+    const idealVal = (equipoConfig.idealFijo !== null ? equipoConfig.idealFijo : kpisActuales.ideal_mes_pct);
+
     const texto = `*SIMENGJ - REPORTE DE GESTIÓN JUDICIAL*
 *Corte Superior de Justicia de Lima Este (CSJLE)*
+*Equipo Técnico:* ${equipoConfig.nombre}
 ------------------------------------------
 🏛️ *Dependencia:* ${dependenciaActual.dependencia}
 📍 *Distrito:* ${dependenciaActual.distrito}
@@ -174,10 +297,11 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
 ------------------------------------------
 📊 *Total de Producción:* ${fmtNum(kpisActuales.total_produccion)} expedientes
 📅 *Producción del Mes:* ${fmtNum(kpisActuales.produccion_mes)} expedientes
-🎯 *Meta Preliminar:* ${fmtNum(kpisActuales.meta_preliminar)}
-⚡ *% de Avance:* ${kpisActuales.avance_pct}%
-⏱️ *% Ideal del Mes:* ${kpisActuales.ideal_mes_pct}%
+🎯 *${metaLabel}:* ${fmtNum(metaVal)}
+⚡ *${avanceLabel}:* ${kpisActuales.avance_pct}%
+⏱️ *% Ideal del Mes:* ${idealVal}%
 🏆 *Nivel Resolutivo:* ${kpisActuales.nivel}
+🏛️ *Meta Estándar:* ${fmtNum(kpisActuales.meta_estandar)}
 ------------------------------------------
 _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
@@ -244,7 +368,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 1. PANTALLA DE BIENVENIDA / INGRESO                            */}
+        {/* 1. PANTALLA DE BIENVENIDA                                      */}
         {/* ============================================================== */}
         {screen === 'bienvenida' && (
           <div style={{
@@ -302,7 +426,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 margin: '0 auto',
                 maxWidth: '360px'
               }}>
-                Sistema de Monitoreo y Evaluación de Niveles de Gestión Judicial. Consulta de producción, avance y metas jurisdiccionales.
+                Sistema de Monitoreo y Evaluación de Niveles de Gestión Judicial. Consulta de producción, avance y metas especializadas por equipo técnico.
               </p>
             </div>
 
@@ -335,6 +459,18 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   padding: '12px',
                   textAlign: 'center'
                 }}>
+                  <div style={{ fontSize: '22px', marginBottom: '2px' }}>📊</div>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>4</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Equipos Técnicos</div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderRadius: '14px',
+                  padding: '12px',
+                  textAlign: 'center'
+                }}>
                   <div style={{ fontSize: '22px', marginBottom: '2px' }}>📍</div>
                   <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>7</div>
                   <div style={{ fontSize: '11px', color: '#94a3b8' }}>Distritos Judiciales</div>
@@ -347,43 +483,20 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   padding: '12px',
                   textAlign: 'center'
                 }}>
-                  <div style={{ fontSize: '22px', marginBottom: '2px' }}>🏢</div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>30</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Sedes de Justicia</div>
+                  <div style={{ fontSize: '22px', marginBottom: '2px' }}>📅</div>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>2026</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Año Judicial</div>
                 </div>
-
-                <div style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                  borderRadius: '14px',
-                  padding: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '22px', marginBottom: '2px' }}>⚡</div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#10b981' }}>2026</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Metas Oficiales</div>
-                </div>
-              </div>
-
-              <div style={{
-                marginTop: '14px',
-                paddingTop: '12px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                fontSize: '11px',
-                color: '#64748b',
-                textAlign: 'center'
-              }}>
-                Unidad de Planeamiento y Desarrollo (UPD) • Estadística CSJLE
               </div>
             </div>
 
-            {/* Botón principal de ingreso */}
-            <div style={{ marginBottom: '12px' }}>
+            {/* Botón principal para ir a Equipos Técnicos */}
+            <div>
               <button
-                onClick={() => setScreen('seleccion')}
+                onClick={() => setScreen('equipos')}
                 style={{
                   width: '100%',
-                  padding: '18px 24px',
+                  padding: '16px',
                   borderRadius: '16px',
                   border: 'none',
                   background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
@@ -395,7 +508,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '10px',
+                  gap: '8px',
                   boxShadow: '0 10px 25px -5px rgba(2, 132, 199, 0.5)',
                   transition: 'transform 100ms ease, box-shadow 100ms ease'
                 }}
@@ -430,9 +543,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 2. PANTALLA DE SELECTORES EN CASCADA                           */}
+        {/* 2. PANTALLA: EQUIPOS TÉCNICOS (4 KPIS PRINCIPALES)             */}
         {/* ============================================================== */}
-        {screen === 'seleccion' && (
+        {screen === 'equipos' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {/* Barra superior con Cerrar Sesión */}
             <div style={{
@@ -450,7 +563,6 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 </span>
               </div>
 
-              {/* Botón Cerrar Sesión */}
               <button
                 onClick={handleCerrarSesion}
                 style={{
@@ -472,11 +584,229 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </button>
             </div>
 
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{
+                display: 'inline-block',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: 'rgba(56, 189, 248, 0.12)',
+                color: '#38bdf8',
+                fontSize: '11px',
+                fontWeight: '800',
+                letterSpacing: '0.04em',
+                marginBottom: '6px'
+              }}>
+                MÓDULOS DE GESTIÓN
+              </div>
+              <h2 style={{ fontSize: '24px', fontWeight: '900', margin: '0 0 6px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
+                Equipos Técnicos
+              </h2>
+              <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0, lineHeight: '1.5' }}>
+                Seleccione el equipo técnico institucional para consultar sus indicadores y metas específicas:
+              </p>
+            </div>
+
+            {/* Listado de las 4 Tarjetas Bento de Equipos Técnicos */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, justifyContent: 'center' }}>
+              {Object.values(EQUIPOS_CONFIG).map((eq) => {
+                const count = (data?.dependencias || []).filter(d => (d.equipo_tecnico || 'OPJ') === eq.id).length || eq.badge;
+
+                return (
+                  <div
+                    key={eq.id}
+                    onClick={() => handleSeleccionarEquipo(eq.id)}
+                    style={{
+                      background: eq.grad,
+                      border: `1.5px solid ${eq.border}`,
+                      borderRadius: '18px',
+                      padding: '16px 18px',
+                      cursor: 'pointer',
+                      backdropFilter: 'blur(12px)',
+                      transition: 'transform 120ms ease, box-shadow 120ms ease',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          fontSize: '24px',
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '12px',
+                          background: 'rgba(15, 23, 42, 0.6)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: `1px solid ${eq.border}`
+                        }}>
+                          {eq.icon}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '17px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.01em' }}>
+                            {eq.nombre}
+                          </div>
+                          <div style={{ fontSize: '11px', color: eq.color, fontWeight: '700' }}>
+                            {count} dependencias activas
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: eq.color,
+                        fontWeight: '900',
+                        fontSize: '15px'
+                      }}>
+                        ➔
+                      </div>
+                    </div>
+
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#cbd5e1',
+                      lineHeight: '1.45',
+                      marginBottom: '10px'
+                    }}>
+                      {eq.desc}
+                    </div>
+
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '6px',
+                      paddingTop: '8px',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+                    }}>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(15, 23, 42, 0.7)',
+                        color: '#f8fafc',
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        🎯 {eq.labelMeta}
+                      </span>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(15, 23, 42, 0.7)',
+                        color: eq.color,
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        ⏱️ {eq.idealFijo ? 'Ideal: 100%' : 'Ideal Mensual'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: '16px', textAlign: 'center' }}>
+              <button
+                onClick={() => setScreen('bienvenida')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748b',
+                  fontSize: '12.5px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  padding: '8px'
+                }}
+              >
+                ← Volver a inicio
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* 3. PANTALLA DE SELECTORES EN CASCADA                           */}
+        {/* ============================================================== */}
+        {screen === 'seleccion' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Barra superior con Volver a Equipos y Cerrar Sesión */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingBottom: '14px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              marginBottom: '16px'
+            }}>
+              <button
+                onClick={() => setScreen('equipos')}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#f8fafc',
+                  borderRadius: '10px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <span>←</span>
+                <span>Equipos</span>
+              </button>
+
+              {/* Badge del equipo actual */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '9999px',
+                background: equipoConfig.grad,
+                border: `1px solid ${equipoConfig.border}`,
+                color: equipoConfig.color,
+                fontSize: '12px',
+                fontWeight: '800'
+              }}>
+                <span>{equipoConfig.icon}</span>
+                <span>{equipoConfig.nombre}</span>
+              </div>
+
+              {/* Botón Cerrar Sesión */}
+              <button
+                onClick={handleCerrarSesion}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#f87171',
+                  borderRadius: '10px',
+                  padding: '6px 10px',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}
+              >
+                Salir
+              </button>
+            </div>
+
             <h2 style={{ fontSize: '18px', fontWeight: '900', margin: '0 0 4px 0', color: '#ffffff' }}>
               Seleccionar Órgano Jurisdiccional
             </h2>
             <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 16px 0' }}>
-              Filtre por distrito, sede y dependencia para consultar los indicadores:
+              Filtrando en <strong style={{ color: equipoConfig.color }}>{equipoConfig.nombre}</strong> ({dependenciasDelEquipo.length} dependencias):
             </p>
 
             {/* 1. Selector de Distrito */}
@@ -485,7 +815,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 📍 1. DISTRITO JUDICIAL
               </label>
               <select
-                value={selectedDistrito}
+                value={distritoEfectivo}
                 onChange={e => handleDistritoChange(e.target.value)}
                 style={{
                   width: '100%',
@@ -500,7 +830,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   cursor: 'pointer'
                 }}
               >
-                {(data?.distritos || []).map(d => (
+                {distritosDisponibles.map(d => (
                   <option key={d} value={d} style={{ background: '#0f172a', color: '#ffffff' }}>
                     {d}
                   </option>
@@ -529,7 +859,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   cursor: 'pointer'
                 }}
               >
-                {sedesDelDistrito.map(s => (
+                {sedesDisponibles.map(s => (
                   <option key={s} value={s} style={{ background: '#0f172a', color: '#ffffff' }}>
                     {s}
                   </option>
@@ -538,38 +868,33 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             </div>
 
             {/* 3. Selector de Dependencia */}
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1' }}>
-                  🏛️ 3. ÓRGANO JURISDICCIONAL ({dependenciasDisponibles.length} activos)
+                  ⚖️ 3. ÓRGANO JURISDICCIONAL
                 </label>
-                {searchFilter && (
-                  <button
-                    onClick={() => setSearchFilter('')}
-                    style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '11px', cursor: 'pointer' }}
-                  >
-                    Limpiar
-                  </button>
-                )}
+                <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
+                  {dependenciasFiltradas.length} disponibles
+                </span>
               </div>
 
-              {/* Buscador de dependencia rápido */}
+              {/* Filtro de búsqueda rápida */}
               <input
                 type="text"
-                placeholder="🔍 Filtrar nombre (ej: 1° Civil, Familia, MBJ...)"
+                placeholder="🔍 Filtrar por nombre..."
                 value={searchFilter}
                 onChange={e => setSearchFilter(e.target.value)}
                 style={{
                   width: '100%',
-                  boxSizing: 'border-box',
-                  padding: '10px 14px',
-                  background: '#091122',
+                  padding: '9px 12px',
+                  background: '#0b1120',
                   border: '1px solid #1e293b',
                   borderRadius: '10px',
-                  color: '#f8fafc',
+                  color: '#ffffff',
                   fontSize: '12px',
                   marginBottom: '8px',
-                  outline: 'none'
+                  outline: 'none',
+                  boxSizing: 'border-box'
                 }}
               />
 
@@ -582,14 +907,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   background: '#131c2e',
                   border: '1.5px solid #0284c7',
                   borderRadius: '12px',
-                  color: '#38bdf8',
+                  color: '#ffffff',
                   fontSize: '13px',
                   fontWeight: '700',
                   outline: 'none',
                   cursor: 'pointer'
                 }}
               >
-                {dependenciasDisponibles.map(dep => (
+                {dependenciasFiltradas.map(dep => (
                   <option key={dep.n_dependencia} value={dep.n_dependencia} style={{ background: '#0f172a', color: '#ffffff' }}>
                     {dep.dependencia}
                   </option>
@@ -598,72 +923,42 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             </div>
 
             {/* 4. Selector de Mes */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', marginBottom: '8px' }}>
-                📅 4. MES DE CONSULTA ({selectedAnio})
+            <div style={{ marginBottom: '22px' }}>
+              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', marginBottom: '6px' }}>
+                📅 4. MES DE EVALUACIÓN ({selectedAnio})
               </label>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '6px'
-              }}>
-                {(data?.meses || []).map(m => {
-                  const isSelected = selectedMes === m.num;
-                  const isReported = m.num <= 9;
-                  return (
-                    <button
-                      key={m.num}
-                      onClick={() => setSelectedMes(m.num)}
-                      style={{
-                        padding: '10px 4px',
-                        borderRadius: '10px',
-                        border: isSelected ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.08)',
-                        background: isSelected ? '#0284c7' : isReported ? '#1e293b' : 'rgba(15,23,42,0.4)',
-                        color: isSelected ? '#ffffff' : isReported ? '#e2e8f0' : '#64748b',
-                        fontSize: '12px',
-                        fontWeight: isSelected ? '800' : '600',
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                        transition: 'all 120ms ease'
-                      }}
-                    >
-                      <div>{m.abrev}</div>
-                      {isSelected && <div style={{ fontSize: '9px', marginTop: '2px', opacity: 0.9 }}>Activo</div>}
-                    </button>
-                  );
-                })}
-              </div>
+              <select
+                value={selectedMes}
+                onChange={e => setSelectedMes(Number(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '13px 14px',
+                  background: '#131c2e',
+                  border: '1.5px solid #1e3a8a',
+                  borderRadius: '12px',
+                  color: '#ffffff',
+                  fontSize: '13.5px',
+                  fontWeight: '700',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {(data?.meses || []).map(m => (
+                  <option key={m.num} value={m.num} style={{ background: '#0f172a', color: '#ffffff' }}>
+                    {m.nombre} ({m.abrev}) {selectedAnio}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Resumen del órgano seleccionado */}
-            {dependenciaActual && (
-              <div style={{
-                background: 'rgba(15, 23, 42, 0.65)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                borderRadius: '12px',
-                padding: '12px 14px',
-                marginBottom: '20px'
-              }}>
-                <div style={{ fontSize: '10.5px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '2px' }}>
-                  Seleccionado para consulta:
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: '800', color: '#ffffff' }}>
-                  {dependenciaActual.dependencia}
-                </div>
-                <div style={{ fontSize: '11px', color: '#38bdf8', marginTop: '2px' }}>
-                  Sede: {dependenciaActual.sede} • Distrito: {dependenciaActual.distrito}
-                </div>
-              </div>
-            )}
-
-            {/* Botón principal para ver indicadores */}
+            {/* Botón de Consulta */}
             <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
               <button
                 disabled={!dependenciaActual}
                 onClick={() => setScreen('kpis')}
                 style={{
                   width: '100%',
-                  padding: '17px 20px',
+                  padding: '16px',
                   borderRadius: '16px',
                   border: 'none',
                   background: dependenciaActual
@@ -689,7 +984,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 3. PANTALLA DE KPIS Y RESULTADOS (BLINDADA CONTRA PANTALLA NEGRA) */}
+        {/* 4. PANTALLA DE KPIS Y RESULTADOS (ADAPTADA POR EQUIPO TÉCNICO) */}
         {/* ============================================================== */}
         {screen === 'kpis' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -780,7 +1075,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     onClick={handleCerrarSesion}
                     style={{
                       background: 'rgba(239, 68, 68, 0.12)',
-                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
                       color: '#f87171',
                       borderRadius: '10px',
                       padding: '6px 10px',
@@ -797,388 +1092,269 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   </button>
                 </div>
 
-                {/* Tarjeta de identificación del órgano jurisdiccional */}
+                {/* Tarjeta de la Dependencia */}
                 <div style={{
-                  background: 'linear-gradient(145deg, #131c2e 0%, #0d1525 100%)',
-                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  background: 'rgba(30, 41, 59, 0.65)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '16px',
-                  padding: '14px 16px',
-                  marginBottom: '14px',
-                  boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
+                  padding: '16px',
+                  marginBottom: '12px',
+                  backdropFilter: 'blur(10px)'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{
-                      background: '#0284c7',
-                      color: '#ffffff',
-                      fontSize: '10px',
+                      fontSize: '11px',
                       fontWeight: '800',
-                      padding: '2px 8px',
+                      color: equipoConfig.color,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      background: equipoConfig.grad,
+                      padding: '3px 8px',
                       borderRadius: '6px',
-                      textTransform: 'uppercase'
+                      border: `1px solid ${equipoConfig.border}`
                     }}>
-                      {dependenciaActual.distrito}
+                      {equipoConfig.icon} {equipoConfig.nombre}
                     </span>
-
-                    <span style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      color: '#cbd5e1',
-                      fontSize: '10px',
-                      fontWeight: '600',
-                      padding: '2px 8px',
-                      borderRadius: '6px'
-                    }}>
-                      {dependenciaActual.sede}
-                    </span>
-
-                    <span style={{
-                      background: 'rgba(56, 189, 248, 0.1)',
-                      color: '#38bdf8',
-                      fontSize: '10px',
-                      fontWeight: '600',
-                      padding: '2px 8px',
-                      borderRadius: '6px'
-                    }}>
-                      {dependenciaActual.categoria}
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      Cód: {dependenciaActual.n_dependencia}
                     </span>
                   </div>
 
-                  <h2 style={{
-                    fontSize: '16px',
-                    fontWeight: '800',
-                    margin: '0 0 6px 0',
-                    color: '#ffffff',
-                    lineHeight: '1.35'
-                  }}>
+                  <h3 style={{ fontSize: '15.5px', fontWeight: '900', color: '#ffffff', margin: '0 0 8px 0', lineHeight: '1.35' }}>
                     {dependenciaActual.dependencia}
-                  </h2>
+                  </h3>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#94a3b8' }}>
-                    <span>Cód: #{dependenciaActual.n_dependencia} • {dependenciaActual.tipo_organo}</span>
-                    <span style={{ color: '#38bdf8', fontWeight: '700' }}>
-                      {kpisActuales.nombre_mes} {selectedAnio}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11.5px', color: '#cbd5e1' }}>
+                    <span style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '3px 8px', borderRadius: '6px' }}>
+                      📍 {dependenciaActual.distrito}
+                    </span>
+                    <span style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '3px 8px', borderRadius: '6px' }}>
+                      🏢 Sede: {dependenciaActual.sede}
+                    </span>
+                    <span style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '3px 8px', borderRadius: '6px' }}>
+                      📅 {kpisActuales.nombre_mes} {selectedAnio}
                     </span>
                   </div>
                 </div>
 
-                {/* ============================================================== */}
-                {/* KPI 1: NIVEL RESOLUTIVO O CUMPLIMIENTO                         */}
-                {/* ============================================================== */}
+                {/* INSIGHT CARD DESTACADO ARRIBA (Meta Estándar R.A. 90-2025 o Marco Normativo) */}
                 <div style={{
-                  background: nivelConfig.bg,
-                  border: `2px solid ${nivelConfig.border}`,
-                  borderRadius: '16px',
-                  padding: '16px',
+                  background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)',
+                  border: '1.5px solid rgba(56, 189, 248, 0.35)',
+                  borderRadius: '14px',
+                  padding: '12px 14px',
                   marginBottom: '14px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  boxShadow: '0 6px 16px rgba(0,0,0,0.2)'
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
                 }}>
-                  <div>
-                    <div style={{
-                      fontSize: '10px',
-                      fontWeight: '800',
-                      color: nivelConfig.text,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      marginBottom: '4px'
-                    }}>
-                      NIVEL RESOLUTIVO / CUMPLIMIENTO
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>🏛️</span>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '800', color: '#38bdf8', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                        {selectedEquipo === 'OPJ' ? 'Meta Estándar R.A. 90-2025' : `${equipoConfig.insightPrefix}`}
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                        Meta anual de referencia establecida
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{
+                    fontSize: '17px',
+                    fontWeight: '900',
+                    color: '#ffffff',
+                    background: 'rgba(2, 132, 199, 0.25)',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(56, 189, 248, 0.4)'
+                  }}>
+                    {fmtNum(kpisActuales.meta_estandar || dependenciaActual.meta_estandar)}
+                  </div>
+                </div>
+
+                {/* BENTO GRID DE LOS 6 INDICADORES CLAVE */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '10px',
+                  marginBottom: '14px'
+                }}>
+
+                  {/* 1. Total de Producción */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '14px',
+                    padding: '14px 12px'
+                  }}>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', marginBottom: '4px' }}>
+                      TOTAL DE PRODUCCIÓN
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                      {fmtNum(kpisActuales.total_produccion)}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#38bdf8', marginTop: '2px' }}>
+                      Resueltos acumulados
+                    </div>
+                  </div>
+
+                  {/* 2. Producción del Mes */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '14px',
+                    padding: '14px 12px'
+                  }}>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', marginBottom: '4px' }}>
+                      PRODUCCIÓN DEL MES
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                      {fmtNum(kpisActuales.produccion_mes)}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                      Mes de {kpisActuales.nombre_mes}
+                    </div>
+                  </div>
+
+                  {/* 3. Meta específica según Equipo Técnico (Meta SIE PJ / Reajuste / Meta) */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '14px',
+                    padding: '14px 12px'
+                  }}>
+                    <div style={{ fontSize: '11px', color: equipoConfig.color, fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
+                      {equipoConfig.labelMeta}
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                      {fmtNum(
+                        selectedEquipo === 'OPJ'
+                          ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar)
+                          : kpisActuales.meta_preliminar
+                      )}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                      {selectedEquipo === 'OPJ' ? 'Meta anual asignada SIE' : 'Objetivo reajustado oficial'}
+                    </div>
+                  </div>
+
+                  {/* 4. % de Avance (% de Avance / %Prod / Avance de meta) */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '14px',
+                    padding: '14px 12px'
+                  }}>
+                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
+                      {equipoConfig.labelAvance}
                     </div>
                     <div style={{
                       fontSize: '24px',
                       fontWeight: '900',
+                      color: kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '#34d399' : '#f59e0b'
+                    }}>
+                      {kpisActuales.avance_pct}%
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                      {kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '✓ Supera avance ideal' : 'Por debajo del ideal'}
+                    </div>
+                  </div>
+
+                  {/* 5. % Ideal del Mes (Para OPJ Setiembre es 73%, para UETI y Flagrancia es 100%) */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '14px',
+                    padding: '14px 12px'
+                  }}>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', marginBottom: '4px' }}>
+                      % IDEAL DEL MES
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#38bdf8' }}>
+                      {equipoConfig.idealFijo !== null ? equipoConfig.idealFijo : kpisActuales.ideal_mes_pct}%
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                      {equipoConfig.idealFijo !== null ? 'Estándar mensual 100%' : `Referencia a ${kpisActuales.nombre_mes}`}
+                    </div>
+                  </div>
+
+                  {/* 6. Nivel Resolutivo / Cumplimiento */}
+                  <div style={{
+                    background: nivelConfig.bg,
+                    border: `1.5px solid ${nivelConfig.border}`,
+                    borderRadius: '14px',
+                    padding: '14px 12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}>
+                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: '700' }}>
+                      NIVEL RESOLUTIVO
+                    </div>
+                    <div style={{
+                      fontSize: '18px',
+                      fontWeight: '900',
                       color: nivelConfig.text,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
+                      gap: '5px',
+                      margin: '4px 0'
                     }}>
                       <span>{nivelConfig.icon}</span>
                       <span>{nivelConfig.label}</span>
                     </div>
-                    <div style={{ fontSize: '11px', color: nivelConfig.text, opacity: 0.9, marginTop: '2px' }}>
+                    <div style={{ fontSize: '10px', color: '#cbd5e1', lineHeight: '1.2' }}>
                       {nivelConfig.descripcion}
                     </div>
                   </div>
-
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    background: nivelConfig.badgeBg,
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '20px',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
-                  }}>
-                    {nivelConfig.icon}
-                  </div>
                 </div>
 
-                {/* ============================================================== */}
-                {/* GRILLA DE KPIS OBLIGATORIOS (2 COLUMNAS)                        */}
-                {/* ============================================================== */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-
-                  {/* KPI 2: TOTAL DE PRODUCCIÓN */}
-                  <div style={{
-                    background: '#131c2e',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
-                    padding: '12px 14px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                  }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
-                      📈 Total Producción
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#38bdf8', letterSpacing: '-0.02em' }}>
-                      {fmtNum(kpisActuales.total_produccion)}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                      Acumulado a {kpisActuales.abrev_mes}
-                    </div>
-                  </div>
-
-                  {/* KPI 3: PRODUCCIÓN DEL MES */}
-                  <div style={{
-                    background: '#131c2e',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
-                    padding: '12px 14px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                  }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
-                      📅 Producción Mes
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#10b981', letterSpacing: '-0.02em' }}>
-                      {fmtNum(kpisActuales.produccion_mes)}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                      Resueltos en {kpisActuales.abrev_mes}
-                    </div>
-                  </div>
-
-                  {/* KPI 4: META PRELIMINAR */}
-                  <div style={{
-                    background: '#131c2e',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
-                    padding: '12px 14px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                  }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
-                      🎯 Meta Preliminar
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#fbbf24', letterSpacing: '-0.02em' }}>
-                      {fmtNum(kpisActuales.meta_preliminar)}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                      {kpisActuales.marco}
-                    </div>
-                  </div>
-
-                  {/* KPI 5: % IDEAL DEL MES */}
-                  <div style={{
-                    background: '#131c2e',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
-                    padding: '12px 14px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                  }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
-                      ⏱️ % Ideal Mes
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#cbd5e1', letterSpacing: '-0.02em' }}>
-                      {kpisActuales.ideal_mes_pct}%
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                      Esperado al mes
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* ============================================================== */}
-                {/* KPI 6: % DE AVANCE CON BARRA PROGRESIVA                        */}
-                {/* ============================================================== */}
+                {/* SELECTOR INTERACTIVO DE MESES (1 a 12) */}
                 <div style={{
-                  background: '#131c2e',
+                  background: 'rgba(15, 23, 42, 0.6)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '16px',
-                  padding: '16px',
-                  marginBottom: '14px'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <div>
-                      <span style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff' }}>
-                        ⚡ % DE AVANCE ALCANZADO
-                      </span>
-                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                        Producción acumulada vs Meta
-                      </div>
-                    </div>
-
-                    <span style={{
-                      fontSize: '28px',
-                      fontWeight: '900',
-                      color: kpisActuales.avance_pct >= kpisActuales.ideal_mes_pct ? '#10b981' : '#f59e0b'
-                    }}>
-                      {kpisActuales.avance_pct}%
-                    </span>
-                  </div>
-
-                  {/* Barra de progreso visual con marcador de % ideal */}
-                  <div style={{
-                    height: '14px',
-                    background: '#090d16',
-                    borderRadius: '9999px',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    border: '1px solid rgba(255,255,255,0.06)'
-                  }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${Math.min(100, kpisActuales.avance_pct)}%`,
-                      background: kpisActuales.avance_pct >= kpisActuales.ideal_mes_pct
-                        ? 'linear-gradient(90deg, #059669 0%, #10b981 100%)'
-                        : 'linear-gradient(90deg, #d97706 0%, #f59e0b 100%)',
-                      borderRadius: '9999px',
-                      transition: 'width 500ms ease'
-                    }} />
-
-                    {/* Marcador del Ideal */}
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      bottom: 0,
-                      left: `${Math.min(99, kpisActuales.ideal_mes_pct)}%`,
-                      width: '2px',
-                      background: '#ffffff',
-                      boxShadow: '0 0 6px #ffffff'
-                    }} title={`Ideal: ${kpisActuales.ideal_mes_pct}%`} />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748b', marginTop: '6px' }}>
-                    <span>0%</span>
-                    <span style={{ color: '#ffffff', fontWeight: '700' }}>
-                      Ideal: {kpisActuales.ideal_mes_pct}%
-                    </span>
-                    <span>100%</span>
-                  </div>
-                </div>
-
-                {/* ============================================================== */}
-                {/* EVOLUCIÓN HISTÓRICA MES A MES                                  */}
-                {/* ============================================================== */}
-                <div style={{
-                  background: '#131c2e',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '16px',
-                  padding: '14px',
+                  borderRadius: '14px',
+                  padding: '12px',
                   marginBottom: '16px'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff' }}>
-                      📊 PRODUCCIÓN MENSUAL {selectedAnio}
-                    </span>
-                    <span style={{ fontSize: '10.5px', color: '#38bdf8', fontWeight: '600' }}>
-                      Toca un mes para cambiar
-                    </span>
+                  <div style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', marginBottom: '8px' }}>
+                    📅 CAMBIAR MES ({selectedAnio})
                   </div>
-
-                  {/* Selector interactivo de meses */}
                   <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(6, 1fr)',
-                    gap: '5px'
+                    display: 'flex',
+                    gap: '6px',
+                    overflowX: 'auto',
+                    paddingBottom: '4px'
                   }}>
-                    {(dependenciaActual.historial_mensual || []).slice(0, 12).map(h => {
-                      const isSelected = h.mes === selectedMes;
-                      const esMayor = h.produccion > 0;
+                    {(data?.meses || []).map(m => {
+                      const isSel = selectedMes === m.num;
                       return (
                         <button
-                          key={h.mes}
-                          onClick={() => setSelectedMes(h.mes)}
+                          key={m.num}
+                          onClick={() => setSelectedMes(m.num)}
                           style={{
-                            background: isSelected ? '#0284c7' : esMayor ? '#1e293b' : 'rgba(15,23,42,0.5)',
-                            border: isSelected ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.06)',
+                            flexShrink: 0,
+                            padding: '6px 12px',
                             borderRadius: '8px',
-                            padding: '6px 2px',
-                            color: isSelected ? '#ffffff' : esMayor ? '#f8fafc' : '#64748b',
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '2px',
-                            transition: 'all 100ms'
+                            border: isSel ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                            background: isSel ? '#0284c7' : 'rgba(30, 41, 59, 0.6)',
+                            color: '#ffffff',
+                            fontSize: '11.5px',
+                            fontWeight: isSel ? '800' : '600',
+                            cursor: 'pointer'
                           }}
                         >
-                          <span style={{ fontSize: '10px', fontWeight: '700' }}>{h.abrev}</span>
-                          <span style={{ fontSize: '11px', fontWeight: '800', color: isSelected ? '#ffffff' : '#38bdf8' }}>
-                            {fmtNum(h.produccion)}
-                          </span>
+                          {m.abrev}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-
-                {/* ============================================================== */}
-                {/* BOTONES DE ACCIÓN RÁPIDA                                      */}
-                {/* ============================================================== */}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                  <button
-                    onClick={() => setScreen('seleccion')}
-                    style={{
-                      flex: 1,
-                      padding: '14px',
-                      borderRadius: '12px',
-                      background: '#1e293b',
-                      border: '1px solid #334155',
-                      color: '#ffffff',
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <span>🔍</span>
-                    <span>Otra Dependencia</span>
-                  </button>
-
-                  <button
-                    onClick={handleCopiarResumen}
-                    style={{
-                      flex: 1,
-                      padding: '14px',
-                      borderRadius: '12px',
-                      background: '#0284c7',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <span>📤</span>
-                    <span>Compartir</span>
-                  </button>
-                </div>
               </div>
             )}
           </div>
         )}
-
       </div>
     </div>
   );

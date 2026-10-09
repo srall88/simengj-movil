@@ -1,5 +1,5 @@
 {
-  "generado_el": "2026-10-09T14:05:05.406Z",
+  "generado_el": "2026-10-09T17:24:16.393Z",
   "anio": 2026,
   "meses": [
     {
@@ -100,6 +100,7 @@
     ],
     "Lurigancho": [
       "Chaclacayo",
+      "Chosica",
       "Chucuito"
     ],
     "San Juan de Lurigancho": [
@@ -20293,7 +20294,7 @@
       "n_dependencia": 6172,
       "dependencia": "Juzgado de Investigación Preparatoria - Carapongo",
       "distrito": "Lurigancho",
-      "sede": "Chucuito",
+      "sede": "Chosica",
       "especialidad": "PENAL",
       "tipo_organo": "Permanente",
       "categoria": "UETI PENAL",
@@ -20536,7 +20537,7 @@
       "n_dependencia": 6173,
       "dependencia": "Juzgado Penal Unipersonal Permanente de Carapongo",
       "distrito": "Lurigancho",
-      "sede": "Chucuito",
+      "sede": "Chosica",
       "especialidad": "PENAL",
       "tipo_organo": "Permanente",
       "categoria": "UETI PENAL",
