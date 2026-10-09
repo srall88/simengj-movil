@@ -12,7 +12,7 @@ const EQUIPOS_CONFIG = {
   OPJ: {
     id: 'OPJ',
     nombre: 'OPJ (No Penales)',
-    badge: '74 Órganos',
+    badge: '73 Órganos',
     icon: '⚖️',
     color: '#38bdf8',
     grad: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(2, 132, 199, 0.08) 100%)',
@@ -473,7 +473,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 }}>
                   <div style={{ fontSize: '22px', marginBottom: '2px' }}>📍</div>
                   <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>7</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Distritos Judiciales</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Distritos</div>
                 </div>
 
                 <div style={{
@@ -1234,8 +1234,11 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                           : kpisActuales.meta_preliminar
                       )}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
-                      {selectedEquipo === 'OPJ' ? 'Meta anual asignada SIE' : 'Objetivo reajustado oficial'}
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px', lineHeight: '1.3' }}>
+                      {selectedEquipo === 'OPJ' ? 'Meta ajustada en mes de Meta anual asignada SIE' : 'Objetivo reajustado oficial'}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#38bdf8', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '3px' }}>
+                      Meta Estándar: <strong>{fmtNum(kpisActuales.meta_estandar || dependenciaActual.meta_estandar)}</strong>
                     </div>
                   </div>
 
@@ -1261,7 +1264,43 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 5. % Ideal del Mes (Para OPJ Setiembre es 73%, para UETI y Flagrancia es 100%) */}
+                  {/* 5. Carga Procesal del Mes (NUEVO KPI SOLICITADO) */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                    borderRadius: '14px',
+                    padding: '14px 12px'
+                  }}>
+                    <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '800', marginBottom: '4px' }}>
+                      CARGA PROCESAL DEL MES
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                      {fmtNum(kpisActuales.carga_procesal_mes)}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                      Carga en trámite ({kpisActuales.nombre_mes})
+                    </div>
+                  </div>
+
+                  {/* 6. Ingresos del Mes (NUEVO KPI SOLICITADO) */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(168, 85, 247, 0.2)',
+                    borderRadius: '14px',
+                    padding: '14px 12px'
+                  }}>
+                    <div style={{ fontSize: '11px', color: '#c084fc', fontWeight: '800', marginBottom: '4px' }}>
+                      INGRESOS DEL MES
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                      {fmtNum(kpisActuales.ingresos_mes)}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                      Nuevos ingresos ({kpisActuales.nombre_mes})
+                    </div>
+                  </div>
+
+                  {/* 7. % Ideal del Mes (Para OPJ Setiembre es 73%, para UETI y Flagrancia es 100%) */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -1279,7 +1318,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 6. Nivel Resolutivo / Cumplimiento */}
+                  {/* 8. Nivel Resolutivo / Cumplimiento */}
                   <div style={{
                     background: nivelConfig.bg,
                     border: `1.5px solid ${nivelConfig.border}`,
@@ -1310,7 +1349,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   </div>
                 </div>
 
-                {/* SELECTOR INTERACTIVO DE MESES (1 a 12) */}
+                {/* SELECTOR INTERACTIVO DE MESES (EN DOS FILAS DE 6 BOTONES) */}
                 <div style={{
                   background: 'rgba(15, 23, 42, 0.6)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -1322,10 +1361,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     📅 CAMBIAR MES ({selectedAnio})
                   </div>
                   <div style={{
-                    display: 'flex',
-                    gap: '6px',
-                    overflowX: 'auto',
-                    paddingBottom: '4px'
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(6, 1fr)',
+                    gap: '6px'
                   }}>
                     {(data?.meses || []).map(m => {
                       const isSel = selectedMes === m.num;
@@ -1334,15 +1372,15 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                           key={m.num}
                           onClick={() => setSelectedMes(m.num)}
                           style={{
-                            flexShrink: 0,
-                            padding: '6px 12px',
+                            padding: '8px 2px',
                             borderRadius: '8px',
                             border: isSel ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
                             background: isSel ? '#0284c7' : 'rgba(30, 41, 59, 0.6)',
                             color: '#ffffff',
-                            fontSize: '11.5px',
+                            fontSize: '11px',
                             fontWeight: isSel ? '800' : '600',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            textAlign: 'center'
                           }}
                         >
                           {m.abrev}
