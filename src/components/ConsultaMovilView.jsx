@@ -7,7 +7,7 @@ function fmtNum(n) {
   return Math.round(Number(n)).toLocaleString('es-PE');
 }
 
-// Configuración de los 4 Equipos Técnicos institucionales
+// Configuración de los 5 Equipos Técnicos institucionales (incluyendo EJECUCIÓN)
 const EQUIPOS_CONFIG = {
   OPJ: {
     id: 'OPJ',
@@ -64,17 +64,47 @@ const EQUIPOS_CONFIG = {
     labelAvance: '% de Avance',
     insightPrefix: 'Estándar PPOR 1002',
     idealFijo: null
+  },
+  EJECUCION: {
+    id: 'EJECUCION',
+    nombre: 'Juzgados de Ejecución',
+    badge: '1 Órgano',
+    icon: '📋',
+    color: '#10b981',
+    grad: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.08) 100%)',
+    border: 'rgba(16, 185, 129, 0.45)',
+    desc: 'Juzgados especializados en Ejecución y Descarga Procesal de Sentencias Laborales.',
+    labelMeta: 'Meta de Ejecución',
+    labelAvance: 'Avance de Meta',
+    insightPrefix: 'Meta Estándar de Ejecución (150/mes)',
+    idealFijo: 100
   }
 };
+
+// Configuración de los 12 meses institucionales con control de bloqueo para el 4to trimestre
+const MESES_CALENDARIO = [
+  { num: 1, nombre: 'Enero', abrev: 'Ene', locked: false },
+  { num: 2, nombre: 'Febrero', abrev: 'Feb', locked: false },
+  { num: 3, nombre: 'Marzo', abrev: 'Mar', locked: false },
+  { num: 4, nombre: 'Abril', abrev: 'Abr', locked: false },
+  { num: 5, nombre: 'Mayo', abrev: 'May', locked: false },
+  { num: 6, nombre: 'Junio', abrev: 'Jun', locked: false },
+  { num: 7, nombre: 'Julio', abrev: 'Jul', locked: false },
+  { num: 8, nombre: 'Agosto', abrev: 'Ago', locked: false },
+  { num: 9, nombre: 'Setiembre', abrev: 'Set', locked: false },
+  { num: 10, nombre: 'Octubre', abrev: 'Oct', locked: true },
+  { num: 11, nombre: 'Noviembre', abrev: 'Nov', locked: true },
+  { num: 12, nombre: 'Diciembre', abrev: 'Dic', locked: true }
+];
 
 export default function ConsultaMovilView({ onBackToDashboard }) {
   // Pantallas: 'bienvenida' | 'equipos' | 'seleccion' | 'kpis'
   const [screen, setScreen] = useState('bienvenida');
 
-  // Equipo Técnico seleccionado: 'OPJ' | 'UETI' | 'FLAGRANCIA' | 'VIOLENCIA'
+  // Equipo Técnico seleccionado: 'OPJ' | 'UETI' | 'FLAGRANCIA' | 'VIOLENCIA' | 'EJECUCION'
   const [selectedEquipo, setSelectedEquipo] = useState('OPJ');
 
-  // Datos consolidados (165 dependencias activas)
+  // Datos consolidados (166 dependencias activas incluyendo 4639 en EJECUCIÓN)
   const [data, setData] = useState(staticConsultasData);
 
   // Estados de selección de filtros
@@ -112,46 +142,59 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     return data.dependencias.filter(d => (d.equipo_tecnico || 'OPJ') === selectedEquipo);
   }, [data, selectedEquipo]);
 
-  // 2. Distritos disponibles para este Equipo Técnico
+  // 2. Distritos disponibles con conteo de dependencias para los chips horizontales
   const distritosDisponibles = useMemo(() => {
-    const set = new Set();
+    const map = new Map();
     dependenciasDelEquipo.forEach(d => {
-      if (d.distrito) set.add(d.distrito);
+      const dist = (d.distrito || 'Sin Distrito').trim();
+      map.set(dist, (map.get(dist) || 0) + 1);
     });
-    return Array.from(set).sort();
+    return Array.from(map.entries())
+      .map(([distrito, count]) => ({ distrito, count }))
+      .sort((a, b) => a.distrito.localeCompare(b.distrito));
   }, [dependenciasDelEquipo]);
 
   // Distrito efectivo garantizado
   const distritoEfectivo = useMemo(() => {
-    if (distritosDisponibles.includes(selectedDistrito)) return selectedDistrito;
-    return distritosDisponibles[0] || '';
+    const nombres = distritosDisponibles.map(d => d.distrito);
+    if (nombres.includes(selectedDistrito)) return selectedDistrito;
+    return nombres[0] || '';
   }, [distritosDisponibles, selectedDistrito]);
 
-  // 3. Sedes disponibles para el distrito y equipo actual
+  // 3. Sedes disponibles para el distrito y equipo actual con conteo
   const sedesDisponibles = useMemo(() => {
-    const set = new Set();
+    const map = new Map();
     dependenciasDelEquipo
-      .filter(d => d.distrito === distritoEfectivo)
+      .filter(d => (d.distrito || 'Sin Distrito').trim() === distritoEfectivo)
       .forEach(d => {
-        if (d.sede) set.add(d.sede);
+        const s = (d.sede || 'Sede Principal').trim();
+        map.set(s, (map.get(s) || 0) + 1);
       });
-    return Array.from(set).sort();
+    return Array.from(map.entries())
+      .map(([sede, count]) => ({ sede, count }))
+      .sort((a, b) => a.sede.localeCompare(b.sede));
   }, [dependenciasDelEquipo, distritoEfectivo]);
 
   // Sede efectiva garantizada
   const sedeEfectiva = useMemo(() => {
-    if (sedesDisponibles.includes(selectedSede)) return selectedSede;
-    return sedesDisponibles[0] || '';
+    const nombres = sedesDisponibles.map(s => s.sede);
+    if (nombres.includes(selectedSede)) return selectedSede;
+    return nombres[0] || '';
   }, [sedesDisponibles, selectedSede]);
 
-  // 4. Dependencias filtradas por distrito y sede para el equipo
+  // 4. Dependencias filtradas por distrito, sede y búsqueda
   const dependenciasFiltradas = useMemo(() => {
     let list = dependenciasDelEquipo.filter(d =>
-      d.distrito === distritoEfectivo && d.sede === sedeEfectiva
+      (d.distrito || 'Sin Distrito').trim() === distritoEfectivo &&
+      (d.sede || 'Sede Principal').trim() === sedeEfectiva
     );
     if (searchFilter.trim()) {
       const q = searchFilter.toLowerCase().trim();
-      list = list.filter(d => d.dependencia.toLowerCase().includes(q));
+      list = list.filter(d =>
+        d.dependencia.toLowerCase().includes(q) ||
+        String(d.n_dependencia).includes(q) ||
+        (d.especialidad && d.especialidad.toLowerCase().includes(q))
+      );
     }
     return list;
   }, [dependenciasDelEquipo, distritoEfectivo, sedeEfectiva, searchFilter]);
@@ -212,6 +255,15 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
   };
 
+  // Manejador de cambio de mes con validación de bloqueo institucional
+  const handleMesChange = (mObj) => {
+    if (mObj.locked) {
+      showToast(`🔒 ${mObj.nombre}: Pendiente de consolidación oficial`);
+      return;
+    }
+    setSelectedMes(mObj.num);
+  };
+
   // 5. KPIs seguros del mes seleccionado
   const kpisActuales = useMemo(() => {
     if (!dependenciaActual || !dependenciaActual.meses) return null;
@@ -227,14 +279,14 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   // Estilos del Nivel Resolutivo / Cumplimiento
   const nivelConfig = useMemo(() => {
     const niv = String(kpisActuales?.nivel || '').toUpperCase();
-    if (niv.includes('MUY BUENO')) {
+    if (niv.includes('SOBRESALIENTE') || niv.includes('MUY BUENO')) {
       return {
         bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.28) 100%)',
         border: '#10b981',
         text: '#34d399',
         badgeBg: '#059669',
         icon: '▲',
-        label: 'MUY BUENO',
+        label: niv.includes('SOBRESALIENTE') ? 'SOBRESALIENTE' : 'MUY BUENO',
         descripcion: 'Supera el estándar y el avance ideal proyectado'
       };
     }
@@ -301,6 +353,8 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
 ⚡ *${avanceLabel}:* ${kpisActuales.avance_pct}%
 ⏱️ *% Ideal del Mes:* ${idealVal}%
 🏆 *Nivel Resolutivo:* ${kpisActuales.nivel}
+${selectedEquipo === 'EJECUCION' ? `📋 *Carga Pendiente en Ejecución:* ${fmtNum(kpisActuales.carga_procesal_mes)}` : `📁 *Carga Procesal del Mes:* ${fmtNum(kpisActuales.carga_procesal_mes)}`}
+📥 *Ingresos del Mes:* ${fmtNum(kpisActuales.ingresos_mes)}
 🏛️ *Meta Estándar:* ${fmtNum(kpisActuales.meta_estandar)}
 ------------------------------------------
 _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
@@ -318,7 +372,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
       minHeight: '100dvh',
       background: 'radial-gradient(circle at 50% 0%, #172554 0%, #090d16 65%, #030712 100%)',
       color: '#f8fafc',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -340,7 +394,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         paddingLeft: 'max(16px, env(safe-area-inset-left))',
         paddingRight: 'max(16px, env(safe-area-inset-right))',
         paddingTop: 'max(14px, env(safe-area-inset-top))',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 28px)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 24px)',
         position: 'relative'
       }}>
 
@@ -448,52 +502,29 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   textAlign: 'center'
                 }}>
                   <div style={{ fontSize: '22px', marginBottom: '2px' }}>🏛️</div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>165</div>
-                  <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>Dependencias Activas</div>
+                  <div style={{ fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>166</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>Dependencias Activas</div>
                 </div>
 
                 <div style={{
                   background: 'rgba(15, 23, 42, 0.7)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(168, 85, 247, 0.15)',
                   borderRadius: '14px',
                   padding: '12px',
                   textAlign: 'center'
                 }}>
                   <div style={{ fontSize: '22px', marginBottom: '2px' }}>📊</div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>4</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Equipos Técnicos</div>
-                </div>
-
-                <div style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  borderRadius: '14px',
-                  padding: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '22px', marginBottom: '2px' }}>📍</div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>7</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Distritos</div>
-                </div>
-
-                <div style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  borderRadius: '14px',
-                  padding: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '22px', marginBottom: '2px' }}>📅</div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>2026</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Año Judicial</div>
+                  <div style={{ fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>5 Módulos</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>Equipos Técnicos</div>
                 </div>
               </div>
             </div>
 
-            {/* Botón principal para ir a Equipos Técnicos */}
-            <div>
+            {/* Botón de Entrada */}
+            <div style={{ width: '100%' }}>
               <button
                 onClick={() => setScreen('equipos')}
+                className="touch-press"
                 style={{
                   width: '100%',
                   padding: '16px',
@@ -510,10 +541,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   justifyContent: 'center',
                   gap: '8px',
                   boxShadow: '0 10px 25px -5px rgba(2, 132, 199, 0.5)',
-                  transition: 'transform 100ms ease, box-shadow 100ms ease'
+                  outline: 'none'
                 }}
-                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
-                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
               >
                 <span>INGRESAR AL SISTEMA</span>
                 <span style={{ fontSize: '18px' }}>➔</span>
@@ -543,7 +572,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 2. PANTALLA: EQUIPOS TÉCNICOS (4 KPIS PRINCIPALES)             */}
+        {/* 2. PANTALLA: EQUIPOS TÉCNICOS (5 MÓDULOS DE GESTIÓN)            */}
         {/* ============================================================== */}
         {screen === 'equipos' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -552,9 +581,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              paddingBottom: '16px',
+              paddingBottom: '14px',
               borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              marginBottom: '16px'
+              marginBottom: '14px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '18px' }}>⚖️</span>
@@ -565,6 +594,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
               <button
                 onClick={handleCerrarSesion}
+                className="touch-press"
                 style={{
                   background: 'rgba(239, 68, 68, 0.12)',
                   border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -584,7 +614,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </button>
             </div>
 
-            <div style={{ marginBottom: '18px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <div style={{
                 display: 'inline-block',
                 padding: '4px 10px',
@@ -596,18 +626,18 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 letterSpacing: '0.04em',
                 marginBottom: '6px'
               }}>
-                MÓDULOS DE GESTIÓN
+                MÓDULOS DE GESTIÓN (5)
               </div>
-              <h2 style={{ fontSize: '24px', fontWeight: '900', margin: '0 0 6px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
+              <h2 style={{ fontSize: '23px', fontWeight: '900', margin: '0 0 6px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
                 Equipos Técnicos
               </h2>
-              <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0, lineHeight: '1.5' }}>
-                Seleccione el equipo técnico institucional para consultar sus indicadores y metas específicas:
+              <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: 0, lineHeight: '1.45' }}>
+                Seleccione el equipo institucional para consultar indicadores oficiales y metas:
               </p>
             </div>
 
-            {/* Listado de las 4 Tarjetas Bento de Equipos Técnicos */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, justifyContent: 'center' }}>
+            {/* Listado de las 5 Tarjetas Bento de Equipos Técnicos */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '11px', flex: 1, paddingBottom: '16px' }}>
               {Object.values(EQUIPOS_CONFIG).map((eq) => {
                 const count = (data?.dependencias || []).filter(d => (d.equipo_tecnico || 'OPJ') === eq.id).length || eq.badge;
 
@@ -615,28 +645,26 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   <div
                     key={eq.id}
                     onClick={() => handleSeleccionarEquipo(eq.id)}
+                    className="touch-press glass-surface"
                     style={{
                       background: eq.grad,
                       border: `1.5px solid ${eq.border}`,
-                      borderRadius: '18px',
-                      padding: '16px 18px',
+                      borderRadius: '16px',
+                      padding: '14px 16px',
                       cursor: 'pointer',
-                      backdropFilter: 'blur(12px)',
-                      transition: 'transform 120ms ease, box-shadow 120ms ease',
+                      boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
                       position: 'relative',
                       overflow: 'hidden'
                     }}
-                    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
-                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
-                          fontSize: '24px',
-                          width: '42px',
-                          height: '42px',
+                          fontSize: '22px',
+                          width: '40px',
+                          height: '40px',
                           borderRadius: '12px',
-                          background: 'rgba(15, 23, 42, 0.6)',
+                          background: 'rgba(15, 23, 42, 0.65)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -645,7 +673,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                           {eq.icon}
                         </div>
                         <div>
-                          <div style={{ fontSize: '17px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.01em' }}>
+                          <div style={{ fontSize: '16px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.01em' }}>
                             {eq.nombre}
                           </div>
                           <div style={{ fontSize: '11px', color: eq.color, fontWeight: '700' }}>
@@ -655,16 +683,16 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       </div>
 
                       <div style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '30px',
+                        height: '30px',
                         borderRadius: '50%',
-                        background: 'rgba(255, 255, 255, 0.08)',
+                        background: 'rgba(255, 255, 255, 0.1)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: eq.color,
                         fontWeight: '900',
-                        fontSize: '15px'
+                        fontSize: '14px'
                       }}>
                         ➔
                       </div>
@@ -673,8 +701,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     <div style={{
                       fontSize: '12px',
                       color: '#cbd5e1',
-                      lineHeight: '1.45',
-                      marginBottom: '10px'
+                      lineHeight: '1.4',
+                      marginBottom: '8px'
                     }}>
                       {eq.desc}
                     </div>
@@ -683,26 +711,26 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       display: 'flex',
                       flexWrap: 'wrap',
                       gap: '6px',
-                      paddingTop: '8px',
+                      paddingTop: '6px',
                       borderTop: '1px solid rgba(255, 255, 255, 0.08)'
                     }}>
                       <span style={{
-                        fontSize: '11px',
+                        fontSize: '10.5px',
                         fontWeight: '700',
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        background: 'rgba(15, 23, 42, 0.7)',
+                        background: 'rgba(15, 23, 42, 0.75)',
                         color: '#f8fafc',
                         border: '1px solid rgba(255, 255, 255, 0.1)'
                       }}>
                         🎯 {eq.labelMeta}
                       </span>
                       <span style={{
-                        fontSize: '11px',
+                        fontSize: '10.5px',
                         fontWeight: '700',
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        background: 'rgba(15, 23, 42, 0.7)',
+                        background: 'rgba(15, 23, 42, 0.75)',
                         color: eq.color,
                         border: '1px solid rgba(255, 255, 255, 0.1)'
                       }}>
@@ -714,7 +742,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               })}
             </div>
 
-            <div style={{ marginTop: '16px', textAlign: 'center' }}>
+            <div style={{ marginTop: 'auto', textAlign: 'center' }}>
               <button
                 onClick={() => setScreen('bienvenida')}
                 style={{
@@ -734,21 +762,22 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 3. PANTALLA DE SELECTORES EN CASCADA                           */}
+        {/* 3. PANTALLA DE FILTROS REDISEÑADA ESTILO APPLE / CUPERTINO     */}
         {/* ============================================================== */}
         {screen === 'seleccion' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {/* Barra superior con Volver a Equipos y Cerrar Sesión */}
+            {/* Barra superior de navegación */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              paddingBottom: '14px',
+              paddingBottom: '12px',
               borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              marginBottom: '16px'
+              marginBottom: '14px'
             }}>
               <button
                 onClick={() => setScreen('equipos')}
+                className="touch-press"
                 style={{
                   background: 'rgba(255, 255, 255, 0.08)',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -767,7 +796,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 <span>Equipos</span>
               </button>
 
-              {/* Badge del equipo actual */}
+              {/* Pill institucional del equipo técnico activo */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -787,6 +816,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               {/* Botón Cerrar Sesión */}
               <button
                 onClick={handleCerrarSesion}
+                className="touch-press"
                 style={{
                   background: 'rgba(239, 68, 68, 0.12)',
                   border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -802,160 +832,419 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </button>
             </div>
 
-            <h2 style={{ fontSize: '18px', fontWeight: '900', margin: '0 0 4px 0', color: '#ffffff' }}>
-              Seleccionar Órgano Jurisdiccional
-            </h2>
-            <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 16px 0' }}>
-              Filtrando en <strong style={{ color: equipoConfig.color }}>{equipoConfig.nombre}</strong> ({dependenciasDelEquipo.length} dependencias):
-            </p>
-
-            {/* 1. Selector de Distrito */}
+            {/* Subtítulo de contexto con conteo dinámico */}
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', marginBottom: '6px' }}>
-                📍 1. DISTRITO JUDICIAL
-              </label>
-              <select
-                value={distritoEfectivo}
-                onChange={e => handleDistritoChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '13px 14px',
-                  background: '#131c2e',
-                  border: '1.5px solid #1e3a8a',
-                  borderRadius: '12px',
-                  color: '#ffffff',
-                  fontSize: '13.5px',
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                  Filtros de Búsqueda
+                </h2>
+                <span style={{
+                  fontSize: '11px',
                   fontWeight: '700',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                {distritosDisponibles.map(d => (
-                  <option key={d} value={d} style={{ background: '#0f172a', color: '#ffffff' }}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+                  color: equipoConfig.color,
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: `1px solid ${equipoConfig.border}`
+                }}>
+                  {dependenciasDelEquipo.length} Órganos
+                </span>
+              </div>
+              <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                Seleccione distrito, sede y el juzgado a evaluar:
+              </p>
             </div>
 
-            {/* 2. Selector de Sede */}
+            {/* SECCIÓN 1: DISTRITO JUDICIAL (CARRUSEL HORIZONTAL TIPO CHIP APPLE) */}
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', marginBottom: '6px' }}>
-                🏢 2. SEDE JUDICIAL
-              </label>
-              <select
-                value={sedeEfectiva}
-                onChange={e => handleSedeChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '13px 14px',
-                  background: '#131c2e',
-                  border: '1.5px solid #1e3a8a',
-                  borderRadius: '12px',
-                  color: '#ffffff',
-                  fontSize: '13.5px',
-                  fontWeight: '700',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                {sedesDisponibles.map(s => (
-                  <option key={s} value={s} style={{ background: '#0f172a', color: '#ffffff' }}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* 3. Selector de Dependencia */}
-            <div style={{ marginBottom: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1' }}>
-                  ⚖️ 3. ÓRGANO JURISDICCIONAL
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
+                  📍 1. DISTRITO JUDICIAL
                 </label>
                 <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
-                  {dependenciasFiltradas.length} disponibles
+                  {distritoEfectivo}
                 </span>
               </div>
 
-              {/* Filtro de búsqueda rápida */}
-              <input
-                type="text"
-                placeholder="🔍 Filtrar por nombre..."
-                value={searchFilter}
-                onChange={e => setSearchFilter(e.target.value)}
+              <div
+                className="no-scrollbar"
                 style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  background: '#0b1120',
-                  border: '1px solid #1e293b',
-                  borderRadius: '10px',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  marginBottom: '8px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
+                  display: 'flex',
+                  gap: '8px',
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  padding: '2px 1px 6px 1px'
                 }}
-              />
+              >
+                {distritosDisponibles.map(({ distrito, count }) => {
+                  const isSel = distrito === distritoEfectivo;
+                  return (
+                    <button
+                      key={distrito}
+                      onClick={() => handleDistritoChange(distrito)}
+                      className="touch-press"
+                      style={{
+                        flex: '0 0 auto',
+                        padding: '9px 14px',
+                        borderRadius: '12px',
+                        border: isSel ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                        background: isSel
+                          ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.95) 0%, rgba(37, 99, 235, 0.9) 100%)'
+                          : 'rgba(30, 41, 59, 0.65)',
+                        color: '#ffffff',
+                        fontSize: '12.5px',
+                        fontWeight: isSel ? '800' : '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: isSel
+                          ? '0 4px 14px rgba(2, 132, 199, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35)'
+                          : 'none',
+                        outline: 'none',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <span>{distrito}</span>
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        padding: '1px 5px',
+                        borderRadius: '9999px',
+                        background: isSel ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+                        color: isSel ? '#ffffff' : '#94a3b8'
+                      }}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-              <select
-                value={dependenciaActual?.n_dependencia || ''}
-                onChange={e => setSelectedDepId(Number(e.target.value))}
+            {/* SECCIÓN 2: SEDE JUDICIAL (SEGMENTO DINÁMICO DE SEDES) */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
+                  🏢 2. SEDE JUDICIAL
+                </label>
+                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  {sedesDisponibles.length} {sedesDisponibles.length === 1 ? 'sede disponible' : 'sedes disponibles'}
+                </span>
+              </div>
+
+              <div
+                className="no-scrollbar"
                 style={{
-                  width: '100%',
-                  padding: '13px 14px',
-                  background: '#131c2e',
-                  border: '1.5px solid #0284c7',
-                  borderRadius: '12px',
-                  color: '#ffffff',
+                  display: 'flex',
+                  gap: '8px',
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  padding: '2px 1px 4px 1px'
+                }}
+              >
+                {sedesDisponibles.map(({ sede, count }) => {
+                  const isSel = sede === sedeEfectiva;
+                  return (
+                    <button
+                      key={sede}
+                      onClick={() => handleSedeChange(sede)}
+                      className="touch-press"
+                      style={{
+                        flex: '0 0 auto',
+                        padding: '8px 13px',
+                        borderRadius: '10px',
+                        border: isSel ? '1.5px solid #0284c7' : '1px solid rgba(255, 255, 255, 0.1)',
+                        background: isSel
+                          ? 'rgba(2, 132, 199, 0.35)'
+                          : 'rgba(15, 23, 42, 0.7)',
+                        color: isSel ? '#38bdf8' : '#cbd5e1',
+                        fontSize: '12px',
+                        fontWeight: isSel ? '800' : '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: isSel ? '0 2px 10px rgba(2, 132, 199, 0.25)' : 'none',
+                        outline: 'none',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <span>{isSel ? '✓' : '•'}</span>
+                      <span>{sede}</span>
+                      <span style={{
+                        fontSize: '9.5px',
+                        color: isSel ? '#38bdf8' : '#64748b',
+                        fontWeight: '700'
+                      }}>
+                        ({count})
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SECCIÓN 3: ÓRGANO JURISDICCIONAL (BUSCADOR INTELIGENTE + LISTA DE TARJETAS TÁCTILES) */}
+            <div style={{ marginBottom: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
+                  ⚖️ 3. ÓRGANO JURISDICCIONAL
+                </label>
+                <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
+                  {dependenciasFiltradas.length} encontrados
+                </span>
+              </div>
+
+              {/* Cápsula de búsqueda moderna tipo iOS */}
+              <div style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '8px'
+              }}>
+                <span style={{
+                  position: 'absolute',
+                  left: '12px',
                   fontSize: '13px',
-                  fontWeight: '700',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                {dependenciasFiltradas.map(dep => (
-                  <option key={dep.n_dependencia} value={dep.n_dependencia} style={{ background: '#0f172a', color: '#ffffff' }}>
-                    {dep.dependencia}
-                  </option>
-                ))}
-              </select>
-            </div>
+                  color: '#94a3b8',
+                  pointerEvents: 'none'
+                }}>
+                  🔍
+                </span>
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, código o especialidad..."
+                  value={searchFilter}
+                  onChange={e => setSearchFilter(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 36px 10px 36px',
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    borderRadius: '12px',
+                    color: '#ffffff',
+                    fontSize: '12.5px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {searchFilter && (
+                  <button
+                    onClick={() => setSearchFilter('')}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '20px',
+                      height: '20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#cbd5e1',
+                      fontSize: '11px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
 
-            {/* 4. Selector de Mes */}
-            <div style={{ marginBottom: '22px' }}>
-              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', marginBottom: '6px' }}>
-                📅 4. MES DE EVALUACIÓN ({selectedAnio})
-              </label>
-              <select
-                value={selectedMes}
-                onChange={e => setSelectedMes(Number(e.target.value))}
+              {/* Lista táctil de Órganos (Cards completas con nombre legible y selección directa) */}
+              <div
+                className="no-scrollbar"
                 style={{
-                  width: '100%',
-                  padding: '13px 14px',
-                  background: '#131c2e',
-                  border: '1.5px solid #1e3a8a',
-                  borderRadius: '12px',
-                  color: '#ffffff',
-                  fontSize: '13.5px',
-                  fontWeight: '700',
-                  outline: 'none',
-                  cursor: 'pointer'
+                  maxHeight: '220px',
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  paddingRight: '2px',
+                  paddingBottom: '2px'
                 }}
               >
-                {(data?.meses || []).map(m => (
-                  <option key={m.num} value={m.num} style={{ background: '#0f172a', color: '#ffffff' }}>
-                    {m.nombre} ({m.abrev}) {selectedAnio}
-                  </option>
-                ))}
-              </select>
+                {dependenciasFiltradas.length === 0 ? (
+                  <div style={{
+                    padding: '24px 12px',
+                    textAlign: 'center',
+                    background: 'rgba(15, 23, 42, 0.5)',
+                    borderRadius: '12px',
+                    border: '1px dashed rgba(255, 255, 255, 0.1)',
+                    color: '#94a3b8',
+                    fontSize: '12px'
+                  }}>
+                    No se encontraron órganos con ese filtro.
+                  </div>
+                ) : (
+                  dependenciasFiltradas.map(dep => {
+                    const isSel = dependenciaActual?.n_dependencia === dep.n_dependencia;
+                    return (
+                      <div
+                        key={dep.n_dependencia}
+                        onClick={() => setSelectedDepId(dep.n_dependencia)}
+                        className="touch-press"
+                        style={{
+                          background: isSel
+                            ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.28) 0%, rgba(15, 23, 42, 0.85) 100%)'
+                            : 'rgba(15, 23, 42, 0.7)',
+                          border: isSel
+                            ? `1.5px solid ${equipoConfig.border || '#38bdf8'}`
+                            : '1px solid rgba(255, 255, 255, 0.08)',
+                          borderRadius: '12px',
+                          padding: '11px 13px',
+                          cursor: 'pointer',
+                          boxShadow: isSel
+                            ? '0 4px 14px rgba(2, 132, 199, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                            : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{
+                              fontSize: '10px',
+                              fontWeight: '800',
+                              color: isSel ? '#38bdf8' : '#94a3b8',
+                              background: 'rgba(15, 23, 42, 0.8)',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(255, 255, 255, 0.08)'
+                            }}>
+                              #{dep.n_dependencia}
+                            </span>
+                            <span style={{
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              color: '#cbd5e1',
+                              textTransform: 'uppercase'
+                            }}>
+                              {dep.especialidad || dep.categoria || 'Judicial'}
+                            </span>
+                          </div>
+
+                          {isSel && (
+                            <span style={{
+                              fontSize: '10px',
+                              fontWeight: '800',
+                              color: '#34d399',
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(16, 185, 129, 0.3)'
+                            }}>
+                              ✓ Seleccionado
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{
+                          fontSize: '13px',
+                          fontWeight: '800',
+                          color: '#ffffff',
+                          lineHeight: '1.35',
+                          marginBottom: '4px'
+                        }}>
+                          {dep.dependencia}
+                        </div>
+
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          fontSize: '10.5px',
+                          color: '#94a3b8'
+                        }}>
+                          <span>🏢 Sede: {dep.sede}</span>
+                          <span>•</span>
+                          <span>Meta Anual: {fmtNum(dep.meta_estandar)}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
-            {/* Botón de Consulta */}
-            <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
+            {/* SECCIÓN 4: MES DE EVALUACIÓN (CALENDARIO DE CINTA HORIZONTAL CON BLOQUEO 🔒) */}
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
+                  📅 4. MES DE EVALUACIÓN ({selectedAnio})
+                </label>
+                <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
+                  {MESES_CALENDARIO.find(m => m.num === selectedMes)?.nombre || 'Setiembre'}
+                </span>
+              </div>
+
+              <div
+                className="no-scrollbar"
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  padding: '2px 1px 4px 1px'
+                }}
+              >
+                {MESES_CALENDARIO.map(m => {
+                  const isSel = selectedMes === m.num;
+                  return (
+                    <button
+                      key={m.num}
+                      onClick={() => handleMesChange(m)}
+                      className="touch-press"
+                      style={{
+                        flex: '0 0 auto',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        border: isSel
+                          ? '1.5px solid #38bdf8'
+                          : m.locked
+                            ? '1px dashed rgba(255, 255, 255, 0.08)'
+                            : '1px solid rgba(255, 255, 255, 0.1)',
+                        background: isSel
+                          ? 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)'
+                          : m.locked
+                            ? 'rgba(15, 23, 42, 0.4)'
+                            : 'rgba(30, 41, 59, 0.65)',
+                        color: isSel ? '#ffffff' : m.locked ? '#64748b' : '#cbd5e1',
+                        fontSize: '11.5px',
+                        fontWeight: isSel ? '800' : '600',
+                        cursor: m.locked ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        boxShadow: isSel
+                          ? '0 4px 12px rgba(2, 132, 199, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+                          : 'none',
+                        outline: 'none',
+                        opacity: m.locked ? 0.6 : 1
+                      }}
+                    >
+                      <span>{m.abrev}</span>
+                      {m.locked && <span style={{ fontSize: '10px' }}>🔒</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* BOTÓN CTA FLOTANTE INFERIOR CON ESTILO LIQUID APPLE */}
+            <div style={{
+              marginTop: 'auto',
+              paddingTop: '6px',
+              position: 'sticky',
+              bottom: 0,
+              zIndex: 30,
+              background: 'linear-gradient(to top, #090d16 80%, rgba(9, 13, 22, 0) 100%)',
+              paddingBottom: '2px'
+            }}>
               <button
                 disabled={!dependenciaActual}
                 onClick={() => setScreen('kpis')}
+                className="touch-press"
                 style={{
                   width: '100%',
                   padding: '16px',
@@ -973,7 +1262,10 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: dependenciaActual ? '0 10px 25px -5px rgba(2, 132, 199, 0.5)' : 'none'
+                  boxShadow: dependenciaActual
+                    ? '0 10px 25px -5px rgba(2, 132, 199, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35)'
+                    : 'none',
+                  outline: 'none'
                 }}
               >
                 <span>CONSULTAR INDICADORES</span>
@@ -1007,6 +1299,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 </p>
                 <button
                   onClick={() => setScreen('seleccion')}
+                  className="touch-press"
                   style={{
                     padding: '12px 24px',
                     borderRadius: '12px',
@@ -1022,17 +1315,18 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </div>
             ) : (
               <div>
-                {/* Barra de navegación superior con Cerrar Sesión */}
+                {/* Barra de navegación superior */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   paddingBottom: '12px',
                   borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                  marginBottom: '14px'
+                  marginBottom: '12px'
                 }}>
                   <button
                     onClick={() => setScreen('seleccion')}
+                    className="touch-press"
                     style={{
                       background: 'rgba(255, 255, 255, 0.08)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -1051,48 +1345,105 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     <span>Filtros</span>
                   </button>
 
-                  <button
-                    onClick={handleCopiarResumen}
-                    style={{
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38bdf8',
-                      borderRadius: '10px',
-                      padding: '6px 10px',
-                      fontSize: '11.5px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <span>📋</span>
-                    <span>Copiar</span>
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      onClick={handleCopiarResumen}
+                      className="touch-press"
+                      style={{
+                        background: 'rgba(56, 189, 248, 0.15)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        color: '#38bdf8',
+                        borderRadius: '10px',
+                        padding: '6px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span>📋</span>
+                      <span>Copiar</span>
+                    </button>
 
-                  <button
-                    onClick={handleCerrarSesion}
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.12)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      color: '#f87171',
-                      borderRadius: '10px',
-                      padding: '6px 10px',
-                      fontSize: '11.5px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <span>🚪</span>
-                    <span>Salir</span>
-                  </button>
+                    <button
+                      onClick={handleCerrarSesion}
+                      className="touch-press"
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        color: '#f87171',
+                        borderRadius: '10px',
+                        padding: '6px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span>🚪</span>
+                      <span>Salir</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Tarjeta de la Dependencia */}
+                {/* SELECTOR RÁPIDO DE MESES DIRECTO EN LA PANTALLA DE KPIS (TIPO SEGMENTED RIBBON) */}
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.65)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '12px',
+                  padding: '8px 10px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.04em' }}>
+                      CAMBIO RÁPIDO DE MES ({selectedAnio})
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '800' }}>
+                      {kpisActuales.nombre_mes}
+                    </span>
+                  </div>
+                  <div
+                    className="no-scrollbar"
+                    style={{
+                      display: 'flex',
+                      gap: '5px',
+                      overflowX: 'auto',
+                      WebkitOverflowScrolling: 'touch',
+                      padding: '1px 0'
+                    }}
+                  >
+                    {MESES_CALENDARIO.map(m => {
+                      const isSel = selectedMes === m.num;
+                      return (
+                        <button
+                          key={m.num}
+                          onClick={() => handleMesChange(m)}
+                          className="touch-press"
+                          style={{
+                            flex: '0 0 auto',
+                            padding: '6px 10px',
+                            borderRadius: '8px',
+                            border: isSel ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                            background: isSel ? '#0284c7' : m.locked ? 'rgba(15, 23, 42, 0.4)' : 'rgba(30, 41, 59, 0.7)',
+                            color: isSel ? '#ffffff' : m.locked ? '#64748b' : '#cbd5e1',
+                            fontSize: '11px',
+                            fontWeight: isSel ? '800' : '600',
+                            cursor: m.locked ? 'not-allowed' : 'pointer',
+                            opacity: m.locked ? 0.6 : 1
+                          }}
+                        >
+                          {m.abrev} {m.locked ? '🔒' : ''}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Tarjeta Principal de la Dependencia */}
                 <div style={{
                   background: 'rgba(30, 41, 59, 0.65)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -1137,13 +1488,13 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   </div>
                 </div>
 
-                {/* INSIGHT CARD DESTACADO ARRIBA (Meta Estándar R.A. 90-2025 o Marco Normativo) */}
+                {/* INSIGHT CARD DESTACADO (Meta Estándar o Marco Normativo) */}
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)',
                   border: '1.5px solid rgba(56, 189, 248, 0.35)',
                   borderRadius: '14px',
                   padding: '12px 14px',
-                  marginBottom: '14px',
+                  marginBottom: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -1156,7 +1507,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         {selectedEquipo === 'OPJ' ? 'Meta Estándar R.A. 90-2025' : `${equipoConfig.insightPrefix}`}
                       </div>
                       <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-                        Meta anual de referencia establecida
+                        {selectedEquipo === 'EJECUCION' ? 'Meta mensual de resoluciones en ejecución' : 'Meta anual de referencia establecida'}
                       </div>
                     </div>
                   </div>
@@ -1173,7 +1524,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   </div>
                 </div>
 
-                {/* BENTO GRID DE LOS 6 INDICADORES CLAVE */}
+                {/* BENTO GRID DE LOS INDICADORES CLAVE */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -1217,7 +1568,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 3. Meta específica según Equipo Técnico (Meta SIE PJ / Reajuste / Meta) */}
+                  {/* 3. Meta específica según Equipo Técnico */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -1235,14 +1586,11 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       )}
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px', lineHeight: '1.3' }}>
-                      {selectedEquipo === 'OPJ' ? 'Meta ajustada en mes de Meta anual asignada SIE' : 'Objetivo reajustado oficial'}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#38bdf8', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '3px' }}>
-                      Meta Estándar: <strong>{fmtNum(kpisActuales.meta_estandar || dependenciaActual.meta_estandar)}</strong>
+                      {selectedEquipo === 'EJECUCION' ? 'Meta mensual estándar de 150' : selectedEquipo === 'OPJ' ? 'Meta ajustada SIE PJ' : 'Objetivo oficial'}
                     </div>
                   </div>
 
-                  {/* 4. % de Avance (% de Avance / %Prod / Avance de meta) */}
+                  {/* 4. % de Avance */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -1264,28 +1612,28 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 5. Carga Procesal del Mes (NUEVO KPI SOLICITADO) */}
+                  {/* 5. Carga Procesal / Carga Pendiente en Ejecución */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
                     borderRadius: '14px',
                     padding: '14px 12px'
                   }}>
                     <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '800', marginBottom: '4px' }}>
-                      CARGA PROCESAL DEL MES
+                      {selectedEquipo === 'EJECUCION' ? 'CARGA PENDIENTE EN EJECUCIÓN' : 'CARGA PROCESAL DEL MES'}
                     </div>
                     <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
                       {fmtNum(kpisActuales.carga_procesal_mes)}
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
-                      Carga en trámite ({kpisActuales.nombre_mes})
+                      {selectedEquipo === 'EJECUCION' ? `Expedientes pendientes (${kpisActuales.nombre_mes})` : `Carga en trámite (${kpisActuales.nombre_mes})`}
                     </div>
                   </div>
 
-                  {/* 6. Ingresos del Mes (NUEVO KPI SOLICITADO) */}
+                  {/* 6. Ingresos del Mes */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(168, 85, 247, 0.2)',
+                    border: '1px solid rgba(168, 85, 247, 0.25)',
                     borderRadius: '14px',
                     padding: '14px 12px'
                   }}>
@@ -1300,7 +1648,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 7. % Ideal del Mes (Para OPJ Setiembre es 73%, para UETI y Flagrancia es 100%) */}
+                  {/* 7. % Ideal del Mes */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -1332,7 +1680,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       NIVEL RESOLUTIVO
                     </div>
                     <div style={{
-                      fontSize: '18px',
+                      fontSize: '17px',
                       fontWeight: '900',
                       color: nivelConfig.text,
                       display: 'flex',
@@ -1346,47 +1694,6 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     <div style={{ fontSize: '10px', color: '#cbd5e1', lineHeight: '1.2' }}>
                       {nivelConfig.descripcion}
                     </div>
-                  </div>
-                </div>
-
-                {/* SELECTOR INTERACTIVO DE MESES (EN DOS FILAS DE 6 BOTONES) */}
-                <div style={{
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '14px',
-                  padding: '12px',
-                  marginBottom: '16px'
-                }}>
-                  <div style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', marginBottom: '8px' }}>
-                    📅 CAMBIAR MES ({selectedAnio})
-                  </div>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(6, 1fr)',
-                    gap: '6px'
-                  }}>
-                    {(data?.meses || []).map(m => {
-                      const isSel = selectedMes === m.num;
-                      return (
-                        <button
-                          key={m.num}
-                          onClick={() => setSelectedMes(m.num)}
-                          style={{
-                            padding: '8px 2px',
-                            borderRadius: '8px',
-                            border: isSel ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                            background: isSel ? '#0284c7' : 'rgba(30, 41, 59, 0.6)',
-                            color: '#ffffff',
-                            fontSize: '11px',
-                            fontWeight: isSel ? '800' : '600',
-                            cursor: 'pointer',
-                            textAlign: 'center'
-                          }}
-                        >
-                          {m.abrev}
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
               </div>
