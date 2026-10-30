@@ -81,16 +81,17 @@ const EQUIPOS_CONFIG = {
   }
 };
 
-// Configuración de los 12 meses institucionales con control de bloqueo para el 4to trimestre
+// Configuración de los 12 meses institucionales:
+// Enero a Agosto bloqueados. Setiembre activo con datos reales oficiales cargados.
 const MESES_CALENDARIO = [
-  { num: 1, nombre: 'Enero', abrev: 'Ene', locked: false },
-  { num: 2, nombre: 'Febrero', abrev: 'Feb', locked: false },
-  { num: 3, nombre: 'Marzo', abrev: 'Mar', locked: false },
-  { num: 4, nombre: 'Abril', abrev: 'Abr', locked: false },
-  { num: 5, nombre: 'Mayo', abrev: 'May', locked: false },
-  { num: 6, nombre: 'Junio', abrev: 'Jun', locked: false },
-  { num: 7, nombre: 'Julio', abrev: 'Jul', locked: false },
-  { num: 8, nombre: 'Agosto', abrev: 'Ago', locked: false },
+  { num: 1, nombre: 'Enero', abrev: 'Ene', locked: true },
+  { num: 2, nombre: 'Febrero', abrev: 'Feb', locked: true },
+  { num: 3, nombre: 'Marzo', abrev: 'Mar', locked: true },
+  { num: 4, nombre: 'Abril', abrev: 'Abr', locked: true },
+  { num: 5, nombre: 'Mayo', abrev: 'May', locked: true },
+  { num: 6, nombre: 'Junio', abrev: 'Jun', locked: true },
+  { num: 7, nombre: 'Julio', abrev: 'Jul', locked: true },
+  { num: 8, nombre: 'Agosto', abrev: 'Ago', locked: true },
   { num: 9, nombre: 'Setiembre', abrev: 'Set', locked: false },
   { num: 10, nombre: 'Octubre', abrev: 'Oct', locked: true },
   { num: 11, nombre: 'Noviembre', abrev: 'Nov', locked: true },
@@ -258,7 +259,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   // Manejador de cambio de mes con validación de bloqueo institucional
   const handleMesChange = (mObj) => {
     if (mObj.locked) {
-      showToast(`🔒 ${mObj.nombre}: Pendiente de consolidación oficial`);
+      showToast(`🔒 ${mObj.nombre}: Bloqueado - Datos oficiales en Setiembre 2026`);
       return;
     }
     setSelectedMes(mObj.num);
