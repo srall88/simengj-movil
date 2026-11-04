@@ -81,21 +81,20 @@ const EQUIPOS_CONFIG = {
   }
 };
 
-// Configuración de los 12 meses institucionales:
-// Enero a Agosto bloqueados. Setiembre activo con datos reales oficiales cargados.
-const MESES_CALENDARIO = [
-  { num: 1, nombre: 'Enero', abrev: 'Ene', locked: true },
-  { num: 2, nombre: 'Febrero', abrev: 'Feb', locked: true },
-  { num: 3, nombre: 'Marzo', abrev: 'Mar', locked: true },
-  { num: 4, nombre: 'Abril', abrev: 'Abr', locked: true },
-  { num: 5, nombre: 'Mayo', abrev: 'May', locked: true },
-  { num: 6, nombre: 'Junio', abrev: 'Jun', locked: true },
-  { num: 7, nombre: 'Julio', abrev: 'Jul', locked: true },
-  { num: 8, nombre: 'Agosto', abrev: 'Ago', locked: true },
-  { num: 9, nombre: 'Setiembre', abrev: 'Set', locked: false },
-  { num: 10, nombre: 'Octubre', abrev: 'Oct', locked: true },
-  { num: 11, nombre: 'Noviembre', abrev: 'Nov', locked: true },
-  { num: 12, nombre: 'Diciembre', abrev: 'Dic', locked: true }
+// Catálogo de meses institucionales base
+const BASE_MESES_CALENDARIO = [
+  { num: 1, nombre: 'Enero', abrev: 'Ene' },
+  { num: 2, nombre: 'Febrero', abrev: 'Feb' },
+  { num: 3, nombre: 'Marzo', abrev: 'Mar' },
+  { num: 4, nombre: 'Abril', abrev: 'Abr' },
+  { num: 5, nombre: 'Mayo', abrev: 'May' },
+  { num: 6, nombre: 'Junio', abrev: 'Jun' },
+  { num: 7, nombre: 'Julio', abrev: 'Jul' },
+  { num: 8, nombre: 'Agosto', abrev: 'Ago' },
+  { num: 9, nombre: 'Setiembre', abrev: 'Set' },
+  { num: 10, nombre: 'Octubre', abrev: 'Oct' },
+  { num: 11, nombre: 'Noviembre', abrev: 'Nov' },
+  { num: 12, nombre: 'Diciembre', abrev: 'Dic' }
 ];
 
 export default function ConsultaMovilView({ onBackToDashboard }) {
@@ -112,7 +111,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   const [selectedDistrito, setSelectedDistrito] = useState('');
   const [selectedSede, setSelectedSede] = useState('');
   const [selectedDepId, setSelectedDepId] = useState(null);
-  const [selectedMes, setSelectedMes] = useState(10); // Dinámico: Último mes cargado (Octubre = 10)
+  const [selectedMes, setSelectedMes] = useState(Number(staticConsultasData?.max_mes_subido || 9)); // Dinámico: Último mes cargado (Setiembre = 9)
   const [selectedAnio, setSelectedAnio] = useState(2026);
   const [searchFilter, setSearchFilter] = useState('');
 
@@ -259,10 +258,19 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
   };
 
+  // Detección dinámica del mes máximo activo en base a los datos oficiales
+  const maxMesActivo = Number(data?.max_mes_subido || 9);
+  const mesesCalendario = useMemo(() => {
+    return BASE_MESES_CALENDARIO.map(m => ({
+      ...m,
+      locked: m.num > maxMesActivo
+    }));
+  }, [maxMesActivo]);
+
   // Manejador de cambio de mes con validación de bloqueo institucional
   const handleMesChange = (mObj) => {
     if (mObj.locked) {
-      showToast(`🔒 ${mObj.nombre}: Bloqueado - Datos oficiales en Setiembre 2026`);
+      showToast(`🔒 ${mObj.nombre}: Pendiente de ingesta oficial`);
       return;
     }
     setSelectedMes(mObj.num);
@@ -439,8 +447,29 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             justifyContent: 'space-between',
             padding: '24px 8px 12px 8px'
           }}>
-            {/* Cabecera institucional */}
-            <div style={{ textAlign: 'center', marginTop: '12px' }}>
+            {/* Cabecera institucional con Logo Oficial */}
+            <div style={{ textAlign: 'center', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+                <div style={{
+                  padding: '4px',
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.4) 0%, rgba(30, 58, 138, 0.3) 100%)',
+                  boxShadow: '0 8px 32px rgba(56, 189, 248, 0.25)'
+                }}>
+                  <img
+                    src="/Logo.jpg"
+                    alt="Logo Poder Judicial - CSJLE"
+                    style={{
+                      width: '68px',
+                      height: '68px',
+                      borderRadius: '16px',
+                      objectFit: 'cover',
+                      display: 'block'
+                    }}
+                  />
+                </div>
+              </div>
+
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -449,7 +478,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 borderRadius: '9999px',
                 background: 'rgba(56, 189, 248, 0.12)',
                 border: '1px solid rgba(56, 189, 248, 0.3)',
-                marginBottom: '18px'
+                marginBottom: '16px'
               }}>
                 <span style={{ fontSize: '13px' }}>⚖️</span>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#38bdf8', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -592,8 +621,19 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
               marginBottom: '14px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>⚖️</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                <img
+                  src="/Logo.jpg"
+                  alt="Logo CSJLE"
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '6px',
+                    objectFit: 'cover',
+                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)'
+                  }}
+                />
                 <span style={{ fontSize: '13px', fontWeight: '800', color: '#ffffff' }}>
                   SIMENGJ • CSJLE
                 </span>
@@ -1181,7 +1221,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   📅 4. MES DE EVALUACIÓN ({selectedAnio})
                 </label>
                 <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
-                  {MESES_CALENDARIO.find(m => m.num === selectedMes)?.nombre || 'Setiembre'}
+                  {mesesCalendario.find(m => m.num === selectedMes)?.nombre || 'Setiembre'}
                 </span>
               </div>
 
@@ -1195,7 +1235,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   padding: '2px 1px 4px 1px'
                 }}
               >
-                {MESES_CALENDARIO.map(m => {
+                {mesesCalendario.map(m => {
                   const isSel = selectedMes === m.num;
                   return (
                     <button
@@ -1423,7 +1463,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       padding: '1px 0'
                     }}
                   >
-                    {MESES_CALENDARIO.map(m => {
+                    {mesesCalendario.map(m => {
                       const isSel = selectedMes === m.num;
                       return (
                         <button
