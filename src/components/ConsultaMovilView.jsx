@@ -112,7 +112,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   const [selectedDistrito, setSelectedDistrito] = useState('');
   const [selectedSede, setSelectedSede] = useState('');
   const [selectedDepId, setSelectedDepId] = useState(null);
-  const [selectedMes, setSelectedMes] = useState(9); // Setiembre por defecto
+  const [selectedMes, setSelectedMes] = useState(10); // Dinámico: Último mes cargado (Octubre = 10)
   const [selectedAnio, setSelectedAnio] = useState(2026);
   const [searchFilter, setSearchFilter] = useState('');
 
@@ -131,6 +131,9 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
         .then(json => {
           if (json && json.success && json.data) {
             setData(json.data);
+            if (json.data.max_mes_subido) {
+              setSelectedMes(Number(json.data.max_mes_subido));
+            }
           }
         })
         .catch(() => {});
@@ -337,6 +340,8 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     const metaLabel = equipoConfig.labelMeta;
     const avanceLabel = equipoConfig.labelAvance;
     const metaVal = (selectedEquipo === 'OPJ' ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar) : kpisActuales.meta_preliminar);
+    const metaValStr = (!metaVal || metaVal === 0) ? '— (Pendiente)' : fmtNum(metaVal);
+    const avanceValStr = (kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '— (Pendiente)' : `${kpisActuales.avance_pct}%`;
     const idealVal = (equipoConfig.idealFijo !== null ? equipoConfig.idealFijo : kpisActuales.ideal_mes_pct);
 
     const texto = `*SIMENGJ - REPORTE DE GESTIÓN JUDICIAL*
@@ -350,8 +355,8 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
 ------------------------------------------
 📊 *Total de Producción:* ${fmtNum(kpisActuales.total_produccion)} expedientes
 📅 *Producción del Mes:* ${fmtNum(kpisActuales.produccion_mes)} expedientes
-🎯 *${metaLabel}:* ${fmtNum(metaVal)}
-⚡ *${avanceLabel}:* ${kpisActuales.avance_pct}%
+🎯 *${metaLabel}:* ${metaValStr}
+⚡ *${avanceLabel}:* ${avanceValStr}
 ⏱️ *% Ideal del Mes:* ${idealVal}%
 🏆 *Nivel Resolutivo:* ${kpisActuales.nivel}
 ${selectedEquipo === 'EJECUCION' ? `📋 *Carga Pendiente en Ejecución:* ${fmtNum(kpisActuales.carga_procesal_mes)}` : `📁 *Carga Procesal del Mes:* ${fmtNum(kpisActuales.carga_procesal_mes)}`}
@@ -1581,14 +1586,18 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       {equipoConfig.labelMeta}
                     </div>
                     <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
-                      {fmtNum(
-                        selectedEquipo === 'OPJ'
-                          ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar)
-                          : kpisActuales.meta_preliminar
-                      )}
+                      {(() => {
+                        const val = selectedEquipo === 'OPJ' ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar) : kpisActuales.meta_preliminar;
+                        if (!val || val === 0) return '—';
+                        return fmtNum(val);
+                      })()}
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px', lineHeight: '1.3' }}>
-                      {selectedEquipo === 'EJECUCION' ? 'Meta mensual estándar de 150' : selectedEquipo === 'OPJ' ? 'Meta ajustada SIE PJ' : 'Objetivo oficial'}
+                      {(() => {
+                        const val = selectedEquipo === 'OPJ' ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar) : kpisActuales.meta_preliminar;
+                        if (!val || val === 0) return 'Pendiente de registrar Meta SIE';
+                        return selectedEquipo === 'EJECUCION' ? 'Meta mensual estándar de 150' : selectedEquipo === 'OPJ' ? 'Meta ajustada SIE PJ' : 'Objetivo oficial';
+                      })()}
                     </div>
                   </div>
 
@@ -1605,12 +1614,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     <div style={{
                       fontSize: '24px',
                       fontWeight: '900',
-                      color: kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '#34d399' : '#f59e0b'
+                      color: (kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '#94a3b8' : (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '#34d399' : '#f59e0b')
                     }}>
-                      {kpisActuales.avance_pct}%
+                      {(kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '—' : `${kpisActuales.avance_pct}%`}
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
-                      {kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '✓ Supera avance ideal' : 'Por debajo del ideal'}
+                      {(kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie))
+                        ? 'Pendiente de Meta SIE'
+                        : (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '✓ Supera avance ideal' : 'Por debajo del ideal')}
                     </div>
                   </div>
 
