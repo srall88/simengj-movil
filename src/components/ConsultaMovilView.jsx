@@ -258,14 +258,28 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
   };
 
-  // Detección dinámica del mes máximo activo en base a los datos oficiales
+  // Detección dinámica del año y del mes máximo activo en base a los datos oficiales
+  const anioActivo = Number(data?.anio || selectedAnio || 2026);
   const maxMesActivo = Number(data?.max_mes_subido || 9);
+
   const mesesCalendario = useMemo(() => {
-    return BASE_MESES_CALENDARIO.map(m => ({
-      ...m,
-      locked: m.num > maxMesActivo
-    }));
-  }, [maxMesActivo]);
+    // Para el año 2026, los datos oficiales del app inician en Setiembre (meses 9 al 12: Set, Oct, Nov, Dic).
+    // A partir de 2027 en adelante, se despliega el ciclo completo de Enero a Diciembre (1 al 12).
+    const mesInicio = anioActivo === 2026 ? 9 : 1;
+    return BASE_MESES_CALENDARIO
+      .filter(m => m.num >= mesInicio)
+      .map(m => ({
+        ...m,
+        locked: m.num > maxMesActivo
+      }));
+  }, [anioActivo, maxMesActivo]);
+
+  // Asegurar que si estamos en 2026 y selectedMes no pertenece al rango visible, se ajuste al mes activo
+  useEffect(() => {
+    if (anioActivo === 2026 && selectedMes < 9) {
+      setSelectedMes(maxMesActivo >= 9 ? maxMesActivo : 9);
+    }
+  }, [anioActivo, selectedMes, maxMesActivo]);
 
   // Manejador de cambio de mes con validación de bloqueo institucional
   const handleMesChange = (mObj) => {
@@ -282,9 +296,9 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     const mesKey = String(selectedMes);
     const kpi = dependenciaActual.meses[mesKey] || dependenciaActual.meses[selectedMes];
     if (kpi) return kpi;
-    const primerMes = Object.values(dependenciaActual.meses)[0];
-    return primerMes || null;
-  }, [dependenciaActual, selectedMes]);
+    const mesDefecto = anioActivo === 2026 ? '9' : '1';
+    return dependenciaActual.meses[mesDefecto] || Object.values(dependenciaActual.meses)[0] || null;
+  }, [dependenciaActual, selectedMes, anioActivo]);
 
   const equipoConfig = EQUIPOS_CONFIG[selectedEquipo] || EQUIPOS_CONFIG.OPJ;
 
