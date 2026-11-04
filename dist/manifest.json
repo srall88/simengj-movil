@@ -1,0 +1,23 @@
+{
+  "short_name": "SIMENGJ",
+  "name": "SIMENGJ Móvil - CSJLE",
+  "description": "Sistema de Monitoreo y Evaluación de Niveles de Gestión Judicial - CSJLE",
+  "icons": [
+    {
+      "src": "/Logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Logo.ico",
+      "type": "image/x-icon",
+      "sizes": "64x64 32x32 24x24 16x16"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "display": "standalone",
+  "orientation": "portrait"
+}
