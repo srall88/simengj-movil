@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import staticConsultasData from '../data/consultasData.json';
 
-// Formato numérico seguro
+// Formateador numérico institucional seguro
 function fmtNum(n) {
   if (n === null || n === undefined || isNaN(n)) return '0';
   return Math.round(Number(n)).toLocaleString('es-PE');
@@ -15,8 +15,9 @@ const EQUIPOS_CONFIG = {
     badge: '73 Órganos',
     icon: '⚖️',
     color: '#38bdf8',
-    grad: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(2, 132, 199, 0.08) 100%)',
-    border: 'rgba(56, 189, 248, 0.4)',
+    glow: 'rgba(56, 189, 248, 0.28)',
+    grad: 'linear-gradient(145deg, rgba(56, 189, 248, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
+    border: 'rgba(56, 189, 248, 0.35)',
     desc: 'Órganos Jurisdiccionales No Penales (Civil, Laboral, Familia, Paz Letrado).',
     labelMeta: 'Meta SIE PJ',
     labelAvance: '% de Avance',
@@ -28,9 +29,10 @@ const EQUIPOS_CONFIG = {
     nombre: 'UETI (Penal)',
     badge: '52 Órganos',
     icon: '⚖️',
-    color: '#a855f7',
-    grad: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(126, 34, 206, 0.08) 100%)',
-    border: 'rgba(168, 85, 247, 0.4)',
+    color: '#c084fc',
+    glow: 'rgba(192, 132, 252, 0.28)',
+    grad: 'linear-gradient(145deg, rgba(168, 85, 247, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
+    border: 'rgba(168, 85, 247, 0.35)',
     desc: 'Unidad de Equipo Técnico Institucional del Código Procesal Penal.',
     labelMeta: 'Meta Preliminar (Reajuste)',
     labelAvance: '% de Avance (%Prod)',
@@ -42,9 +44,10 @@ const EQUIPOS_CONFIG = {
     nombre: 'Flagrancia',
     badge: '14 Órganos',
     icon: '⚡',
-    color: '#f59e0b',
-    grad: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.08) 100%)',
-    border: 'rgba(245, 158, 11, 0.4)',
+    color: '#fbbf24',
+    glow: 'rgba(251, 191, 36, 0.28)',
+    grad: 'linear-gradient(145deg, rgba(245, 158, 11, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
+    border: 'rgba(245, 158, 11, 0.35)',
     desc: 'Unidades de Flagrancia Delictiva (JIP y JUP Flagrancia).',
     labelMeta: 'Meta Preliminar (Meta)',
     labelAvance: '% de Avance (Avance de meta)',
@@ -56,18 +59,35 @@ const EQUIPOS_CONFIG = {
     nombre: 'Violencia',
     badge: '25 Órganos',
     icon: '🛡️',
-    color: '#ec4899',
-    grad: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(190, 24, 93, 0.08) 100%)',
-    border: 'rgba(236, 72, 153, 0.4)',
+    color: '#f472b6',
+    glow: 'rgba(244, 114, 182, 0.28)',
+    grad: 'linear-gradient(145deg, rgba(236, 72, 153, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
+    border: 'rgba(236, 72, 153, 0.35)',
     desc: 'Módulo de Violencia Familiar contra las Mujeres (PPOR 1002).',
     labelMeta: 'Meta Preliminar',
     labelAvance: '% de Avance',
     insightPrefix: 'Estándar PPOR 1002',
     idealFijo: null
+  },
+  EJECUCION: {
+    id: 'EJECUCION',
+    nombre: 'Juzgados de Ejecución',
+    badge: 'En construcción',
+    icon: '📋',
+    color: '#eab308',
+    glow: 'rgba(234, 179, 8, 0.25)',
+    grad: 'linear-gradient(145deg, rgba(234, 179, 8, 0.12) 0%, rgba(15, 23, 42, 0.85) 100%)',
+    border: 'rgba(234, 179, 8, 0.38)',
+    desc: 'Módulo de Ejecución y Descarga Procesal. Analizando datos e indicadores para su integración.',
+    labelMeta: 'En construcción',
+    labelAvance: 'Analizando datos',
+    insightPrefix: 'En construcción • Analizando datos',
+    idealFijo: null,
+    enConstruccion: true
   }
 };
 
-// Catálogo de meses institucionales base
+// Catálogo base de meses institucionales
 const BASE_MESES_CALENDARIO = [
   { num: 1, nombre: 'Enero', abrev: 'Ene' },
   { num: 2, nombre: 'Febrero', abrev: 'Feb' },
@@ -84,31 +104,34 @@ const BASE_MESES_CALENDARIO = [
 ];
 
 export default function ConsultaMovilView({ onBackToDashboard }) {
-  // Pantallas: 'bienvenida' | 'equipos' | 'seleccion' | 'kpis'
+  // Flujo de pantallas: 'bienvenida' | 'equipos' | 'seleccion' | 'kpis'
   const [screen, setScreen] = useState('bienvenida');
 
-  // Equipo Técnico seleccionado: 'OPJ' | 'UETI' | 'FLAGRANCIA' | 'VIOLENCIA' | 'EJECUCION'
+  // Equipo Técnico seleccionado
   const [selectedEquipo, setSelectedEquipo] = useState('OPJ');
+
+  // Modal para avisar estado En Construcción / Analizando datos
+  const [modalConstruccion, setModalConstruccion] = useState(false);
 
   // Datos consolidados (166 dependencias activas incluyendo 4639 en EJECUCIÓN)
   const [data, setData] = useState(staticConsultasData);
 
-  // Estados de selección de filtros
+  // Filtros de navegación
   const [selectedDistrito, setSelectedDistrito] = useState('');
   const [selectedSede, setSelectedSede] = useState('');
   const [selectedDepId, setSelectedDepId] = useState(null);
-  const [selectedMes, setSelectedMes] = useState(Number(staticConsultasData?.max_mes_subido || 9)); // Dinámico: Último mes cargado (Setiembre = 9)
+  const [selectedMes, setSelectedMes] = useState(Number(staticConsultasData?.max_mes_subido || 10));
   const [selectedAnio, setSelectedAnio] = useState(2026);
   const [searchFilter, setSearchFilter] = useState('');
 
-  // Toast de notificación
+  // Toast flotante con animación fluida
   const [toastMessage, setToastMessage] = useState('');
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 2500);
+    setTimeout(() => setToastMessage(''), 2600);
   };
 
-  // Carga reactiva de datos en tiempo real si el backend está activo (localhost / red)
+  // Carga reactiva de datos en tiempo real si el backend está activo
   useEffect(() => {
     try {
       fetch('/api/consulta-movil/datos?fresh=true')
@@ -131,7 +154,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     return data.dependencias.filter(d => (d.equipo_tecnico || 'OPJ') === selectedEquipo);
   }, [data, selectedEquipo]);
 
-  // 2. Distritos disponibles con conteo de dependencias para los chips horizontales
+  // 2. Distritos disponibles con conteo para los chips de selección
   const distritosDisponibles = useMemo(() => {
     const map = new Map();
     dependenciasDelEquipo.forEach(d => {
@@ -171,7 +194,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     return nombres[0] || '';
   }, [sedesDisponibles, selectedSede]);
 
-  // 4. Dependencias filtradas por distrito, sede y búsqueda
+  // 4. Dependencias filtradas por distrito, sede y búsqueda reactiva
   const dependenciasFiltradas = useMemo(() => {
     let list = dependenciasDelEquipo.filter(d =>
       (d.distrito || 'Sin Distrito').trim() === distritoEfectivo &&
@@ -188,7 +211,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     return list;
   }, [dependenciasDelEquipo, distritoEfectivo, sedeEfectiva, searchFilter]);
 
-  // Dependencia seleccionada
+  // Dependencia seleccionada activa
   const dependenciaActual = useMemo(() => {
     if (!dependenciasFiltradas.length) return null;
     if (selectedDepId) {
@@ -198,8 +221,12 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     return dependenciasFiltradas[0];
   }, [dependenciasFiltradas, selectedDepId]);
 
-  // Manejador al seleccionar un Equipo Técnico desde la pantalla 'equipos'
+  // Manejador al seleccionar un Equipo Técnico
   const handleSeleccionarEquipo = (eqId) => {
+    if (EQUIPOS_CONFIG[eqId]?.enConstruccion) {
+      setModalConstruccion(true);
+      return;
+    }
     setSelectedEquipo(eqId);
     setSearchFilter('');
     const depsEq = (data?.dependencias || []).filter(d => (d.equipo_tecnico || 'OPJ') === eqId);
@@ -244,13 +271,13 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
   };
 
-  // Detección dinámica del año y del mes máximo activo en base a los datos oficiales
+  // Detección dinámica del año y del mes máximo activo
   const anioActivo = Number(data?.anio || selectedAnio || 2026);
-  const maxMesActivo = Number(data?.max_mes_subido || 9);
+  const maxMesActivo = Number(data?.max_mes_subido || 10);
 
   const mesesCalendario = useMemo(() => {
-    // Para el año 2026, los datos oficiales del app inician en Setiembre (meses 9 al 12: Set, Oct, Nov, Dic).
-    // A partir de 2027 en adelante, se despliega el ciclo completo de Enero a Diciembre (1 al 12).
+    // Para 2026, los datos oficiales del app inician en Setiembre (meses 9 al 12).
+    // A partir de 2027 en adelante, despliega el ciclo completo de Enero a Diciembre.
     const mesInicio = anioActivo === 2026 ? 9 : 1;
     return BASE_MESES_CALENDARIO
       .filter(m => m.num >= mesInicio)
@@ -260,14 +287,14 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
       }));
   }, [anioActivo, maxMesActivo]);
 
-  // Asegurar que si estamos en 2026 y selectedMes no pertenece al rango visible, se ajuste al mes activo
+  // Si estamos en 2026 y selectedMes no pertenece al rango, fijar en el mes activo
   useEffect(() => {
     if (anioActivo === 2026 && selectedMes < 9) {
       setSelectedMes(maxMesActivo >= 9 ? maxMesActivo : 9);
     }
   }, [anioActivo, selectedMes, maxMesActivo]);
 
-  // Manejador de cambio de mes con validación de bloqueo institucional
+  // Manejador de cambio de mes con bloqueo háptico / toast
   const handleMesChange = (mObj) => {
     if (mObj.locked) {
       showToast(`🔒 ${mObj.nombre}: Pendiente de ingesta oficial`);
@@ -293,7 +320,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     const niv = String(kpisActuales?.nivel || '').toUpperCase();
     if (niv.includes('SOBRESALIENTE') || niv.includes('MUY BUENO')) {
       return {
-        bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.28) 100%)',
+        bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.28) 100%)',
         border: '#10b981',
         text: '#34d399',
         badgeBg: '#059669',
@@ -304,7 +331,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
     if (niv.includes('BUENO')) {
       return {
-        bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.28) 100%)',
+        bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.28) 100%)',
         border: '#f59e0b',
         text: '#fbbf24',
         badgeBg: '#d97706',
@@ -315,7 +342,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
     if (niv.includes('BAJO')) {
       return {
-        bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(220, 38, 38, 0.28) 100%)',
+        bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(220, 38, 38, 0.28) 100%)',
         border: '#ef4444',
         text: '#f87171',
         badgeBg: '#dc2626',
@@ -325,7 +352,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
       };
     }
     return {
-      bg: 'linear-gradient(135deg, rgba(148, 163, 184, 0.18) 0%, rgba(100, 116, 139, 0.28) 100%)',
+      bg: 'linear-gradient(135deg, rgba(148, 163, 184, 0.14) 0%, rgba(100, 116, 139, 0.25) 100%)',
       border: '#64748b',
       text: '#94a3b8',
       badgeBg: '#475569',
@@ -335,14 +362,14 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     };
   }, [kpisActuales]);
 
-  // Cerrar sesión / salir
+  // Cerrar sesión
   const handleCerrarSesion = () => {
     setScreen('bienvenida');
     setSearchFilter('');
     showToast('Sesión finalizada correctamente');
   };
 
-  // Copiar resumen al portapapeles
+  // Copiar resumen de gestión listo para compartir
   const handleCopiarResumen = () => {
     if (!dependenciaActual || !kpisActuales) return;
     const metaLabel = equipoConfig.labelMeta;
@@ -361,8 +388,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
 🏢 *Sede:* ${dependenciaActual.sede}
 📅 *Periodo:* ${kpisActuales.nombre_mes} ${selectedAnio}
 ------------------------------------------
-📊 *Total de Producción:* ${fmtNum(kpisActuales.total_produccion)} expedientes
-📅 *Producción del Mes:* ${fmtNum(kpisActuales.produccion_mes)} expedientes
+📊 *Total de Producción:* ${fmtNum(kpisActuales.total_produccion)} expedientes (Mes de ${kpisActuales.nombre_mes}: ${fmtNum(kpisActuales.produccion_mes)})
 🎯 *${metaLabel}:* ${metaValStr}
 ⚡ *${avanceLabel}:* ${avanceValStr}
 ⏱️ *% Ideal del Mes:* ${idealVal}%
@@ -377,7 +403,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
     navigator.clipboard.writeText(texto).then(() => {
       showToast('✓ Reporte copiado al portapapeles');
     }).catch(() => {
-      showToast('✓ Texto listo');
+      showToast('✓ Texto copiado');
     });
   };
 
@@ -385,7 +411,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
     <div style={{
       width: '100%',
       minHeight: '100dvh',
-      background: 'radial-gradient(circle at 50% 0%, #172554 0%, #090d16 65%, #030712 100%)',
+      background: 'radial-gradient(circle at 50% 0%, #0f1f3d 0%, #080d1a 60%, #050811 100%)',
       color: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
       display: 'flex',
@@ -398,10 +424,10 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
       overflowX: 'hidden'
     }}>
 
-      {/* Contenedor centralizado responsive y adaptado a celulares */}
+      {/* Contenedor centralizado mobile-first con safe-area padding */}
       <div style={{
         width: '100%',
-        maxWidth: '540px',
+        maxWidth: '520px',
         minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
@@ -409,11 +435,11 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         paddingLeft: 'max(16px, env(safe-area-inset-left))',
         paddingRight: 'max(16px, env(safe-area-inset-right))',
         paddingTop: 'max(14px, env(safe-area-inset-top))',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 24px)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 20px)',
         position: 'relative'
       }}>
 
-        {/* Toast flotante */}
+        {/* Toast flotante estilo Apple Liquid Pill */}
         {toastMessage && (
           <div style={{
             position: 'fixed',
@@ -421,48 +447,49 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9999,
-            background: 'rgba(15, 23, 42, 0.95)',
-            border: '1px solid #38bdf8',
+            background: 'rgba(15, 23, 42, 0.94)',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
             color: '#ffffff',
             padding: '10px 20px',
             borderRadius: '9999px',
             fontSize: '13px',
             fontWeight: '700',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(10px)',
-            animation: 'fadeIn 200ms ease'
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.25)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            animation: 'fadeIn 180ms ease'
           }}>
             {toastMessage}
           </div>
         )}
 
         {/* ============================================================== */}
-        {/* 1. PANTALLA DE BIENVENIDA                                      */}
+        {/* 1. PANTALLA DE BIENVENIDA (MODERNA, HERO METRICS, INTENCIONAL) */}
         {/* ============================================================== */}
         {screen === 'bienvenida' && (
-          <div style={{
+          <div className="animate-fade-in" style={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             padding: '24px 8px 12px 8px'
           }}>
-            {/* Cabecera institucional con Logo Oficial */}
-            <div style={{ textAlign: 'center', marginTop: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+            {/* Cabecera institucional con Logo Oficial y Efecto Halo */}
+            <div style={{ textAlign: 'center', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
                 <div style={{
-                  padding: '4px',
-                  borderRadius: '20px',
-                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.4) 0%, rgba(30, 58, 138, 0.3) 100%)',
-                  boxShadow: '0 8px 32px rgba(56, 189, 248, 0.25)'
+                  padding: '5px',
+                  borderRadius: '24px',
+                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.45) 0%, rgba(30, 58, 138, 0.3) 100%)',
+                  boxShadow: '0 12px 36px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
                 }}>
                   <img
                     src="/Logo.jpg"
                     alt="Logo Poder Judicial - CSJLE"
                     style={{
-                      width: '68px',
-                      height: '68px',
-                      borderRadius: '16px',
+                      width: '74px',
+                      height: '74px',
+                      borderRadius: '20px',
                       objectFit: 'cover',
                       display: 'block'
                     }}
@@ -470,15 +497,17 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 </div>
               </div>
 
+              {/* Badge Institucional */}
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
                 padding: '6px 14px',
                 borderRadius: '9999px',
-                background: 'rgba(56, 189, 248, 0.12)',
+                background: 'rgba(56, 189, 248, 0.1)',
                 border: '1px solid rgba(56, 189, 248, 0.3)',
-                marginBottom: '16px'
+                marginBottom: '14px',
+                backdropFilter: 'blur(10px)'
               }}>
                 <span style={{ fontSize: '13px' }}>⚖️</span>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#38bdf8', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -487,7 +516,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </div>
 
               <h1 style={{
-                fontSize: '34px',
+                fontSize: '36px',
                 fontWeight: '900',
                 margin: '0 0 6px 0',
                 letterSpacing: '-0.03em',
@@ -502,8 +531,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 fontSize: '13px',
                 fontWeight: '700',
                 color: '#38bdf8',
-                marginBottom: '14px',
-                letterSpacing: '0.03em',
+                marginBottom: '12px',
+                letterSpacing: '0.04em',
                 textTransform: 'uppercase'
               }}>
                 Corte Superior de Justicia de Lima Este
@@ -516,47 +545,67 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 margin: '0 auto',
                 maxWidth: '360px'
               }}>
-                Sistema de Monitoreo y Evaluación de Niveles de Gestión Judicial. Consulta de producción, avance y metas especializadas por equipo técnico.
+                Sistema de Monitoreo y Evaluación de Niveles de Gestión Judicial. Consulta ágil de metas, producción y carga por equipo técnico.
               </p>
             </div>
 
-            {/* Bento Grid de características institucionales */}
+            {/* Bento Grid de métricas clave del sistema */}
             <div style={{
-              background: 'rgba(30, 41, 59, 0.55)',
+              background: 'rgba(15, 23, 42, 0.65)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '20px',
+              borderRadius: '22px',
               padding: '18px',
               backdropFilter: 'blur(16px)',
-              margin: '20px 0'
+              margin: '22px 0',
+              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
             }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  border: '1px solid rgba(56, 189, 248, 0.15)',
-                  borderRadius: '14px',
-                  padding: '12px',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  border: '1px solid rgba(56, 189, 248, 0.2)',
+                  borderRadius: '16px',
+                  padding: '14px',
                   textAlign: 'center'
                 }}>
-                  <div style={{ fontSize: '22px', marginBottom: '2px' }}>🏛️</div>
-                  <div style={{ fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>166</div>
+                  <div style={{ fontSize: '24px', marginBottom: '2px' }}>🏛️</div>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>166</div>
                   <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>Dependencias Activas</div>
                 </div>
 
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  border: '1px solid rgba(168, 85, 247, 0.15)',
-                  borderRadius: '14px',
-                  padding: '12px',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  border: '1px solid rgba(168, 85, 247, 0.2)',
+                  borderRadius: '16px',
+                  padding: '14px',
                   textAlign: 'center'
                 }}>
-                  <div style={{ fontSize: '22px', marginBottom: '2px' }}>📊</div>
-                  <div style={{ fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>5 Módulos</div>
+                  <div style={{ fontSize: '24px', marginBottom: '2px' }}>📊</div>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>5 Módulos</div>
                   <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>Equipos Técnicos</div>
                 </div>
               </div>
+
+              {/* Indicador de último mes oficial activo */}
+              <div style={{
+                marginTop: '12px',
+                padding: '8px 12px',
+                background: 'rgba(2, 132, 199, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: '600' }}>
+                  Datos oficiales actualizados:
+                </span>
+                <span style={{ fontSize: '11.5px', color: '#38bdf8', fontWeight: '800' }}>
+                  Octubre 2026 ✓
+                </span>
+              </div>
             </div>
 
-            {/* Botón de Entrada */}
+            {/* Botón de Entrada estilo Thumb-Zone */}
             <div style={{ width: '100%' }}>
               <button
                 onClick={() => setScreen('equipos')}
@@ -564,7 +613,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 style={{
                   width: '100%',
                   padding: '16px',
-                  borderRadius: '16px',
+                  borderRadius: '18px',
                   border: 'none',
                   background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
                   color: '#ffffff',
@@ -576,7 +625,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: '0 10px 25px -5px rgba(2, 132, 199, 0.5)',
+                  boxShadow: '0 12px 28px -6px rgba(2, 132, 199, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35)',
                   outline: 'none'
                 }}
               >
@@ -611,7 +660,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         {/* 2. PANTALLA: EQUIPOS TÉCNICOS (5 MÓDULOS DE GESTIÓN)            */}
         {/* ============================================================== */}
         {screen === 'equipos' && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {/* Barra superior con Cerrar Sesión */}
             <div style={{
               display: 'flex',
@@ -619,22 +668,22 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               justifyContent: 'space-between',
               paddingBottom: '14px',
               borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              marginBottom: '14px'
+              marginBottom: '16px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
                 <img
                   src="/Logo.jpg"
                   alt="Logo CSJLE"
                   style={{
-                    width: '26px',
-                    height: '26px',
-                    borderRadius: '6px',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
                     objectFit: 'cover',
                     border: '1px solid rgba(56, 189, 248, 0.4)',
-                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)'
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)'
                   }}
                 />
-                <span style={{ fontSize: '13px', fontWeight: '800', color: '#ffffff' }}>
+                <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#ffffff' }}>
                   SIMENGJ • CSJLE
                 </span>
               </div>
@@ -675,7 +724,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               }}>
                 MÓDULOS DE GESTIÓN (5)
               </div>
-              <h2 style={{ fontSize: '23px', fontWeight: '900', margin: '0 0 6px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '900', margin: '0 0 6px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
                 Equipos Técnicos
               </h2>
               <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: 0, lineHeight: '1.45' }}>
@@ -684,7 +733,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             </div>
 
             {/* Listado de las 5 Tarjetas Bento de Equipos Técnicos */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '11px', flex: 1, paddingBottom: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, paddingBottom: '16px' }}>
               {Object.values(EQUIPOS_CONFIG).map((eq) => {
                 const count = (data?.dependencias || []).filter(d => (d.equipo_tecnico || 'OPJ') === eq.id).length || eq.badge;
 
@@ -692,64 +741,76 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   <div
                     key={eq.id}
                     onClick={() => handleSeleccionarEquipo(eq.id)}
-                    className="touch-press glass-surface"
+                    className="touch-press glass-card"
                     style={{
-                      background: eq.grad,
-                      border: `1.5px solid ${eq.border}`,
-                      borderRadius: '16px',
-                      padding: '14px 16px',
+                      background: eq.enConstruccion
+                        ? 'linear-gradient(145deg, rgba(234, 179, 8, 0.12) 0%, rgba(15, 23, 42, 0.88) 100%)'
+                        : eq.grad,
+                      border: eq.enConstruccion
+                        ? '1.5px dashed rgba(234, 179, 8, 0.45)'
+                        : `1.5px solid ${eq.border}`,
+                      borderRadius: '18px',
+                      padding: '15px 16px',
                       cursor: 'pointer',
-                      boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
                       position: 'relative',
                       overflow: 'hidden'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           fontSize: '22px',
-                          width: '40px',
-                          height: '40px',
+                          width: '42px',
+                          height: '42px',
                           borderRadius: '12px',
-                          background: 'rgba(15, 23, 42, 0.65)',
+                          background: 'rgba(15, 23, 42, 0.75)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          border: `1px solid ${eq.border}`
+                          border: `1px solid ${eq.border}`,
+                          boxShadow: `0 4px 12px ${eq.glow}`
                         }}>
                           {eq.icon}
                         </div>
                         <div>
-                          <div style={{ fontSize: '16px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.01em' }}>
+                          <div style={{ fontSize: '16.5px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.01em' }}>
                             {eq.nombre}
                           </div>
-                          <div style={{ fontSize: '11px', color: eq.color, fontWeight: '700' }}>
-                            {count} dependencias activas
-                          </div>
+                          {eq.enConstruccion ? (
+                            <div style={{ fontSize: '11.5px', color: '#facc15', fontWeight: '800' }}>
+                              🚧 En construcción • Analizando datos
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '11.5px', color: eq.color, fontWeight: '700' }}>
+                              {count} dependencias activas
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        background: 'rgba(255, 255, 255, 0.1)',
+                        width: eq.enConstruccion ? 'auto' : '32px',
+                        height: '32px',
+                        borderRadius: eq.enConstruccion ? '8px' : '50%',
+                        padding: eq.enConstruccion ? '0 10px' : '0',
+                        background: eq.enConstruccion ? 'rgba(234, 179, 8, 0.18)' : 'rgba(255, 255, 255, 0.08)',
+                        border: eq.enConstruccion ? '1px solid rgba(234, 179, 8, 0.35)' : '1px solid rgba(255, 255, 255, 0.12)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: eq.color,
-                        fontWeight: '900',
-                        fontSize: '14px'
+                        color: eq.enConstruccion ? '#facc15' : eq.color,
+                        fontWeight: '800',
+                        fontSize: eq.enConstruccion ? '11px' : '14px'
                       }}>
-                        ➔
+                        {eq.enConstruccion ? 'Ver estado' : '➔'}
                       </div>
                     </div>
 
                     <div style={{
                       fontSize: '12px',
                       color: '#cbd5e1',
-                      lineHeight: '1.4',
-                      marginBottom: '8px'
+                      lineHeight: '1.45',
+                      marginBottom: '10px'
                     }}>
                       {eq.desc}
                     </div>
@@ -758,31 +819,47 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       display: 'flex',
                       flexWrap: 'wrap',
                       gap: '6px',
-                      paddingTop: '6px',
+                      paddingTop: '8px',
                       borderTop: '1px solid rgba(255, 255, 255, 0.08)'
                     }}>
-                      <span style={{
-                        fontSize: '10.5px',
-                        fontWeight: '700',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(15, 23, 42, 0.75)',
-                        color: '#f8fafc',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
-                      }}>
-                        🎯 {eq.labelMeta}
-                      </span>
-                      <span style={{
-                        fontSize: '10.5px',
-                        fontWeight: '700',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(15, 23, 42, 0.75)',
-                        color: eq.color,
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
-                      }}>
-                        ⏱️ {eq.idealFijo ? 'Ideal: 100%' : 'Ideal Mensual'}
-                      </span>
+                      {eq.enConstruccion ? (
+                        <span style={{
+                          fontSize: '10.5px',
+                          fontWeight: '800',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          background: 'rgba(234, 179, 8, 0.18)',
+                          color: '#facc15',
+                          border: '1px solid rgba(234, 179, 8, 0.35)'
+                        }}>
+                          🚧 En construcción • Analizando datos
+                        </span>
+                      ) : (
+                        <>
+                          <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '700',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: 'rgba(15, 23, 42, 0.75)',
+                            color: '#f8fafc',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                          }}>
+                            🎯 {eq.labelMeta}
+                          </span>
+                          <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '700',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: 'rgba(15, 23, 42, 0.75)',
+                            color: eq.color,
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                          }}>
+                            ⏱️ {eq.idealFijo ? 'Ideal: 100%' : 'Ideal Mensual'}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -809,10 +886,10 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 3. PANTALLA DE FILTROS REDISEÑADA ESTILO APPLE / CUPERTINO     */}
+        {/* 3. PANTALLA DE FILTROS (THUMB-ZONE OPTIMIZED + CUPERTINO FLOW) */}
         {/* ============================================================== */}
         {screen === 'seleccion' && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {/* Barra superior de navegación */}
             <div style={{
               display: 'flex',
@@ -848,7 +925,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '4px 10px',
+                padding: '5px 12px',
                 borderRadius: '9999px',
                 background: equipoConfig.grad,
                 border: `1px solid ${equipoConfig.border}`,
@@ -860,7 +937,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 <span>{equipoConfig.nombre}</span>
               </div>
 
-              {/* Botón Cerrar Sesión */}
+              {/* Botón Salir */}
               <button
                 onClick={handleCerrarSesion}
                 className="touch-press"
@@ -969,7 +1046,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </div>
             </div>
 
-            {/* SECCIÓN 2: SEDE JUDICIAL (SEGMENTO DINÁMICO DE SEDES) */}
+            {/* SECCIÓN 2: SEDE JUDICIAL */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
@@ -1032,7 +1109,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </div>
             </div>
 
-            {/* SECCIÓN 3: ÓRGANO JURISDICCIONAL (BUSCADOR INTELIGENTE + LISTA DE TARJETAS TÁCTILES) */}
+            {/* SECCIÓN 3: ÓRGANO JURISDICCIONAL */}
             <div style={{ marginBottom: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
@@ -1043,7 +1120,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 </span>
               </div>
 
-              {/* Cápsula de búsqueda moderna tipo iOS */}
+              {/* Cápsula de búsqueda moderna */}
               <div style={{
                 position: 'relative',
                 display: 'flex',
@@ -1100,7 +1177,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 )}
               </div>
 
-              {/* Lista táctil de Órganos (Cards completas con nombre legible y selección directa) */}
+              {/* Lista táctil de Órganos */}
               <div
                 className="no-scrollbar"
                 style={{
@@ -1214,14 +1291,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </div>
             </div>
 
-            {/* SECCIÓN 4: MES DE EVALUACIÓN (CALENDARIO DE CINTA HORIZONTAL CON BLOQUEO 🔒) */}
+            {/* SECCIÓN 4: MES DE EVALUACIÓN (CALENDARIO DE CINTA CON CANDADOS DINÁMICOS) */}
             <div style={{ marginBottom: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
                   📅 4. MES DE EVALUACIÓN ({selectedAnio})
                 </label>
                 <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
-                  {mesesCalendario.find(m => m.num === selectedMes)?.nombre || 'Setiembre'}
+                  {mesesCalendario.find(m => m.num === selectedMes)?.nombre || 'Octubre'}
                 </span>
               </div>
 
@@ -1244,8 +1321,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       className="touch-press"
                       style={{
                         flex: '0 0 auto',
-                        padding: '9px 12px',
-                        borderRadius: '10px',
+                        padding: '9px 13px',
+                        borderRadius: '11px',
                         border: isSel
                           ? '1.5px solid #38bdf8'
                           : m.locked
@@ -1278,14 +1355,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </div>
             </div>
 
-            {/* BOTÓN CTA FLOTANTE INFERIOR CON ESTILO LIQUID APPLE */}
+            {/* BOTÓN CTA FLOTANTE INFERIOR DENTRO DE LA ZONA DEL PULGAR */}
             <div style={{
               marginTop: 'auto',
               paddingTop: '6px',
               position: 'sticky',
               bottom: 0,
               zIndex: 30,
-              background: 'linear-gradient(to top, #090d16 80%, rgba(9, 13, 22, 0) 100%)',
+              background: 'linear-gradient(to top, #080d1a 85%, rgba(8, 13, 26, 0) 100%)',
               paddingBottom: '2px'
             }}>
               <button
@@ -1295,7 +1372,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 style={{
                   width: '100%',
                   padding: '16px',
-                  borderRadius: '16px',
+                  borderRadius: '18px',
                   border: 'none',
                   background: dependenciaActual
                     ? 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)'
@@ -1310,7 +1387,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   justifyContent: 'center',
                   gap: '8px',
                   boxShadow: dependenciaActual
-                    ? '0 10px 25px -5px rgba(2, 132, 199, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35)'
+                    ? '0 12px 28px -6px rgba(2, 132, 199, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35)'
                     : 'none',
                   outline: 'none'
                 }}
@@ -1326,18 +1403,19 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         {/* 4. PANTALLA DE KPIS Y RESULTADOS (ADAPTADA POR EQUIPO TÉCNICO) */}
         {/* ============================================================== */}
         {screen === 'kpis' && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-            {/* Si no hay datos, mostrar alerta elegante con botón volver */}
+            {/* Alerta de datos no disponibles */}
             {(!dependenciaActual || !kpisActuales) ? (
               <div style={{
-                background: '#1e293b',
-                borderRadius: '16px',
+                background: 'rgba(15, 23, 42, 0.8)',
+                borderRadius: '18px',
                 padding: '24px',
                 textAlign: 'center',
-                margin: 'auto 0'
+                margin: 'auto 0',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
               }}>
-                <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
+                <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚠️</div>
                 <h3 style={{ fontSize: '16px', color: '#ffffff', marginBottom: '8px' }}>
                   No se encontraron indicadores
                 </h3>
@@ -1437,13 +1515,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   </div>
                 </div>
 
-                {/* SELECTOR RÁPIDO DE MESES DIRECTO EN LA PANTALLA DE KPIS (TIPO SEGMENTED RIBBON) */}
+                {/* SELECTOR RÁPIDO DE MESES DIRECTO EN LA PANTALLA DE KPIS */}
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.65)',
+                  background: 'rgba(15, 23, 42, 0.72)',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '12px',
-                  padding: '8px 10px',
-                  marginBottom: '12px'
+                  borderRadius: '14px',
+                  padding: '9px 12px',
+                  marginBottom: '12px',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.04em' }}>
@@ -1472,15 +1551,16 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                           className="touch-press"
                           style={{
                             flex: '0 0 auto',
-                            padding: '6px 10px',
-                            borderRadius: '8px',
+                            padding: '6px 11px',
+                            borderRadius: '9px',
                             border: isSel ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
                             background: isSel ? '#0284c7' : m.locked ? 'rgba(15, 23, 42, 0.4)' : 'rgba(30, 41, 59, 0.7)',
                             color: isSel ? '#ffffff' : m.locked ? '#64748b' : '#cbd5e1',
                             fontSize: '11px',
                             fontWeight: isSel ? '800' : '600',
                             cursor: m.locked ? 'not-allowed' : 'pointer',
-                            opacity: m.locked ? 0.6 : 1
+                            opacity: m.locked ? 0.6 : 1,
+                            boxShadow: isSel ? '0 2px 8px rgba(2, 132, 199, 0.4)' : 'none'
                           }}
                         >
                           {m.abrev} {m.locked ? '🔒' : ''}
@@ -1494,10 +1574,11 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 <div style={{
                   background: 'rgba(30, 41, 59, 0.65)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '16px',
+                  borderRadius: '18px',
                   padding: '16px',
                   marginBottom: '12px',
-                  backdropFilter: 'blur(10px)'
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{
@@ -1535,17 +1616,17 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   </div>
                 </div>
 
-                {/* INSIGHT CARD DESTACADO (Meta Estándar o Marco Normativo) */}
+                {/* INSIGHT CARD DESTACADO */}
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)',
                   border: '1.5px solid rgba(56, 189, 248, 0.35)',
-                  borderRadius: '14px',
+                  borderRadius: '16px',
                   padding: '12px 14px',
                   marginBottom: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.25)'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '18px' }}>🏛️</span>
@@ -1576,56 +1657,39 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
                   gap: '10px',
-                  marginBottom: '14px'
+                  marginBottom: '16px'
                 }}>
 
-                  {/* 1. Total de Producción */}
+                  {/* 1. Total de Producción con sub-nota del mes seleccionado */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
-                    padding: '14px 12px'
+                    border: '1.5px solid rgba(56, 189, 248, 0.35)',
+                    borderRadius: '16px',
+                    padding: '14px 12px',
+                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.15)'
                   }}>
                     <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', marginBottom: '4px' }}>
                       TOTAL DE PRODUCCIÓN
                     </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.total_produccion)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#38bdf8', marginTop: '2px' }}>
-                      Resueltos acumulados
+                    <div style={{ fontSize: '10.5px', color: '#38bdf8', marginTop: '3px', fontWeight: '600' }}>
+                      Mes de {kpisActuales.nombre_mes}: <strong style={{ color: '#ffffff' }}>{fmtNum(kpisActuales.produccion_mes)}</strong>
                     </div>
                   </div>
 
-                  {/* 2. Producción del Mes */}
+                  {/* 2. Meta específica según Equipo Técnico */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
-                    padding: '14px 12px'
-                  }}>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', marginBottom: '4px' }}>
-                      PRODUCCIÓN DEL MES
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
-                      {fmtNum(kpisActuales.produccion_mes)}
-                    </div>
-                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
-                      Mes de {kpisActuales.nombre_mes}
-                    </div>
-                  </div>
-
-                  {/* 3. Meta específica según Equipo Técnico */}
-                  <div style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
+                    borderRadius: '16px',
                     padding: '14px 12px'
                   }}>
                     <div style={{ fontSize: '11px', color: equipoConfig.color, fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
                       {equipoConfig.labelMeta}
                     </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em' }}>
                       {(() => {
                         const val = selectedEquipo === 'OPJ' ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar) : kpisActuales.meta_preliminar;
                         if (!val || val === 0) return '—';
@@ -1641,19 +1705,20 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 4. % de Avance */}
+                  {/* 3. % de Avance */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
+                    borderRadius: '16px',
                     padding: '14px 12px'
                   }}>
                     <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
                       {equipoConfig.labelAvance}
                     </div>
                     <div style={{
-                      fontSize: '24px',
+                      fontSize: '26px',
                       fontWeight: '900',
+                      letterSpacing: '-0.02em',
                       color: (kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '#94a3b8' : (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '#34d399' : '#f59e0b')
                     }}>
                       {(kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '—' : `${kpisActuales.avance_pct}%`}
@@ -1665,17 +1730,17 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 5. Carga Procesal / Carga Pendiente en Ejecución */}
+                  {/* 4. Carga Procesal / Carga Pendiente en Ejecución */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
                     border: '1px solid rgba(56, 189, 248, 0.25)',
-                    borderRadius: '14px',
+                    borderRadius: '16px',
                     padding: '14px 12px'
                   }}>
                     <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '800', marginBottom: '4px' }}>
                       {selectedEquipo === 'EJECUCION' ? 'CARGA PENDIENTE EN EJECUCIÓN' : 'CARGA PROCESAL DEL MES'}
                     </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.carga_procesal_mes)}
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
@@ -1683,17 +1748,17 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 6. Total de Ingresos (Acumulado hasta el mes seleccionado) */}
+                  {/* 5. Total de Ingresos (Acumulado hasta el mes seleccionado) */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
                     border: '1.5px solid rgba(168, 85, 247, 0.28)',
-                    borderRadius: '14px',
+                    borderRadius: '16px',
                     padding: '14px 12px'
                   }}>
                     <div style={{ fontSize: '11px', color: '#c084fc', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
                       TOTAL DE INGRESOS
                     </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.total_ingresos !== undefined ? kpisActuales.total_ingresos : kpisActuales.ingresos_mes)}
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px', lineHeight: '1.3' }}>
@@ -1701,17 +1766,17 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 7. % Ideal del Mes */}
+                  {/* 6. % Ideal del Mes */}
                   <div style={{
                     background: 'rgba(15, 23, 42, 0.75)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
+                    borderRadius: '16px',
                     padding: '14px 12px'
                   }}>
                     <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', marginBottom: '4px' }}>
                       % IDEAL DEL MES
                     </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#38bdf8' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#38bdf8', letterSpacing: '-0.02em' }}>
                       {equipoConfig.idealFijo !== null ? equipoConfig.idealFijo : kpisActuales.ideal_mes_pct}%
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
@@ -1719,38 +1784,119 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 8. Nivel Resolutivo / Cumplimiento */}
+                  {/* 7. Nivel Resolutivo / Cumplimiento */}
                   <div style={{
+                    gridColumn: '1 / -1',
                     background: nivelConfig.bg,
                     border: `1.5px solid ${nivelConfig.border}`,
-                    borderRadius: '14px',
-                    padding: '14px 12px',
+                    borderRadius: '16px',
+                    padding: '14px 16px',
                     display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between'
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.25)'
                   }}>
-                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: '700' }}>
-                      NIVEL RESOLUTIVO
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: '700' }}>
+                        NIVEL RESOLUTIVO
+                      </div>
+                      <div style={{
+                        fontSize: '18px',
+                        fontWeight: '900',
+                        color: nivelConfig.text,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        margin: '3px 0'
+                      }}>
+                        <span>{nivelConfig.icon}</span>
+                        <span>{nivelConfig.label}</span>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#cbd5e1', lineHeight: '1.2' }}>
+                        {nivelConfig.descripcion}
+                      </div>
                     </div>
                     <div style={{
-                      fontSize: '17px',
-                      fontWeight: '900',
+                      padding: '8px 14px',
+                      borderRadius: '12px',
+                      background: 'rgba(15, 23, 42, 0.65)',
+                      border: `1px solid ${nivelConfig.border}`,
                       color: nivelConfig.text,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      margin: '4px 0'
+                      fontWeight: '900',
+                      fontSize: '13px'
                     }}>
-                      <span>{nivelConfig.icon}</span>
-                      <span>{nivelConfig.label}</span>
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#cbd5e1', lineHeight: '1.2' }}>
-                      {nivelConfig.descripcion}
+                      Oficial
                     </div>
                   </div>
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Modal de Aviso: Módulo en Construcción (Bottom-Sheet / Dialog estilo Apple) */}
+        {modalConstruccion && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)'
+          }}>
+            <div className="animate-slide-up" style={{
+              background: '#0c1322',
+              border: '1.5px solid rgba(234, 179, 8, 0.45)',
+              borderRadius: '24px',
+              padding: '26px',
+              maxWidth: '360px',
+              width: '100%',
+              textAlign: 'center',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(234, 179, 8, 0.2)'
+            }}>
+              <div style={{ fontSize: '44px', marginBottom: '10px' }}>🚧</div>
+              <h3 style={{ fontSize: '19px', fontWeight: '900', color: '#ffffff', margin: '0 0 6px 0' }}>
+                Juzgados de Ejecución
+              </h3>
+              <div style={{
+                display: 'inline-block',
+                background: 'rgba(234, 179, 8, 0.18)',
+                color: '#facc15',
+                border: '1px solid rgba(234, 179, 8, 0.35)',
+                borderRadius: '8px',
+                padding: '4px 10px',
+                fontSize: '11.5px',
+                fontWeight: '800',
+                marginBottom: '14px'
+              }}>
+                En construcción • Analizando datos
+              </div>
+              <p style={{ fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.55', margin: '0 0 22px 0' }}>
+                Actualmente se están analizando las nuevas directrices e indicadores oficiales que se mostrarán para los Juzgados de Ejecución.
+              </p>
+              <button
+                onClick={() => setModalConstruccion(false)}
+                className="touch-press"
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 16px rgba(2, 132, 199, 0.4)'
+                }}
+              >
+                Comprendido
+              </button>
+            </div>
           </div>
         )}
       </div>
