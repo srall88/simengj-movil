@@ -15,7 +15,7 @@ const EQUIPOS_CONFIG = {
     badge: '73 Órganos',
     icon: '⚖️',
     color: '#0284c7',
-    glow: 'rgba(2, 132, 199, 0.15)',
+    glow: 'rgba(2, 132, 199, 0.2)',
     grad: 'linear-gradient(145deg, #f0f9ff 0%, #ffffff 100%)',
     border: '#bae6fd',
     accentBg: '#e0f2fe',
@@ -31,7 +31,7 @@ const EQUIPOS_CONFIG = {
     badge: '52 Órganos',
     icon: '⚖️',
     color: '#7e22ce',
-    glow: 'rgba(126, 34, 206, 0.15)',
+    glow: 'rgba(126, 34, 206, 0.2)',
     grad: 'linear-gradient(145deg, #faf5ff 0%, #ffffff 100%)',
     border: '#e9d5ff',
     accentBg: '#f3e8ff',
@@ -47,7 +47,7 @@ const EQUIPOS_CONFIG = {
     badge: '14 Órganos',
     icon: '⚡',
     color: '#b45309',
-    glow: 'rgba(180, 83, 9, 0.15)',
+    glow: 'rgba(180, 83, 9, 0.2)',
     grad: 'linear-gradient(145deg, #fffbeb 0%, #ffffff 100%)',
     border: '#fde68a',
     accentBg: '#fef3c7',
@@ -63,7 +63,7 @@ const EQUIPOS_CONFIG = {
     badge: '25 Órganos',
     icon: '🛡️',
     color: '#be185d',
-    glow: 'rgba(190, 24, 93, 0.15)',
+    glow: 'rgba(190, 24, 93, 0.2)',
     grad: 'linear-gradient(145deg, #fdf2f8 0%, #ffffff 100%)',
     border: '#fbcfe8',
     accentBg: '#fce7f3',
@@ -79,7 +79,7 @@ const EQUIPOS_CONFIG = {
     badge: 'En construcción',
     icon: '📋',
     color: '#a16207',
-    glow: 'rgba(161, 98, 7, 0.15)',
+    glow: 'rgba(161, 98, 7, 0.2)',
     grad: 'linear-gradient(145deg, #fefce8 0%, #ffffff 100%)',
     border: '#fde047',
     accentBg: '#fef9c3',
@@ -115,8 +115,8 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   // Equipo Técnico seleccionado
   const [selectedEquipo, setSelectedEquipo] = useState('OPJ');
 
-  // Modal para avisar estado En Construcción
-  const [modalConstruccion, setModalConstruccion] = useState(false);
+  // Subventanas / Modales interactivos: 'distrito' | 'sede' | 'organo' | 'mes' | 'produccion' | 'ingresos' | 'construccion' | null
+  const [activeModal, setActiveModal] = useState(null);
 
   // Datos consolidados (166 dependencias activas incluyendo 4639 en EJECUCIÓN)
   const [data, setData] = useState(staticConsultasData);
@@ -153,10 +153,10 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     } catch (_) {}
   }, []);
 
-  // Transición animada interactiva con el logo del PJ
+  // Transición animada interactiva con el logo pj.png rebotando y girando
   const handleIngresarSistema = () => {
     setScreen('animacion_intro');
-    // Tras 1.6 segundos de rotación y rebote, cuando el logo mira de frente, pasa a las tarjetas
+    // Tras 1.65 segundos de giro 3D y rebote, cuando el logo queda de frente, entra a las tarjetas
     setTimeout(() => {
       setScreen('equipos');
     }, 1650);
@@ -238,7 +238,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   // Manejador al seleccionar un Equipo Técnico
   const handleSeleccionarEquipo = (eqId) => {
     if (EQUIPOS_CONFIG[eqId]?.enConstruccion) {
-      setModalConstruccion(true);
+      setActiveModal('construccion');
       return;
     }
     setSelectedEquipo(eqId);
@@ -253,36 +253,58 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     setSelectedSede(primeraSede);
     setSelectedDepId(primerDep ? primerDep.n_dependencia : null);
     setScreen('seleccion');
+    setActiveModal(null);
   };
 
-  // Manejador de cambio de distrito
-  const handleDistritoChange = (nuevoDistrito) => {
-    setSelectedDistrito(nuevoDistrito);
+  // Manejadores interactivos paso a paso para los filtros en subventanas
+  const handleSeleccionarDistrito = (distrito) => {
+    setSelectedDistrito(distrito);
     setSearchFilter('');
     const sedesDelDist = dependenciasDelEquipo
-      .filter(d => d.distrito === nuevoDistrito)
+      .filter(d => d.distrito === distrito)
       .map(d => d.sede);
     const nuevaSede = sedesDelDist[0] || '';
     setSelectedSede(nuevaSede);
 
     const deps = dependenciasDelEquipo.filter(d =>
-      d.distrito === nuevoDistrito && d.sede === nuevaSede
+      d.distrito === distrito && d.sede === nuevaSede
     );
     if (deps.length > 0) {
       setSelectedDepId(deps[0].n_dependencia);
     }
+
+    // Paso 1 completado -> Abre automáticamente la subventana del Paso 2 (Sede)
+    setActiveModal('sede');
   };
 
-  // Manejador de cambio de sede
-  const handleSedeChange = (nuevaSede) => {
-    setSelectedSede(nuevaSede);
+  const handleSeleccionarSede = (sede) => {
+    setSelectedSede(sede);
     setSearchFilter('');
     const deps = dependenciasDelEquipo.filter(d =>
-      d.distrito === distritoEfectivo && d.sede === nuevaSede
+      d.distrito === distritoEfectivo && d.sede === sede
     );
     if (deps.length > 0) {
       setSelectedDepId(deps[0].n_dependencia);
     }
+
+    // Paso 2 completado -> Abre automáticamente la subventana del Paso 3 (Órgano)
+    setActiveModal('organo');
+  };
+
+  const handleSeleccionarOrgano = (depId) => {
+    setSelectedDepId(depId);
+    // Paso 3 completado -> Abre automáticamente la subventana del Paso 4 (Mes de evaluación)
+    setActiveModal('mes');
+  };
+
+  const handleSeleccionarMesEnModal = (mObj) => {
+    if (mObj.locked) {
+      showToast(`🔒 ${mObj.nombre}: Pendiente de ingesta oficial`);
+      return;
+    }
+    setSelectedMes(mObj.num);
+    setActiveModal(null);
+    showToast(`✓ Filtros completos: ${mObj.nombre} seleccionado`);
   };
 
   // Detección dinámica del año y del mes máximo activo
@@ -305,7 +327,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
   }, [anioActivo, selectedMes, maxMesActivo]);
 
-  const handleMesChange = (mObj) => {
+  const handleMesChangeDirecto = (mObj) => {
     if (mObj.locked) {
       showToast(`🔒 ${mObj.nombre}: Pendiente de ingesta oficial`);
       return;
@@ -313,7 +335,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     setSelectedMes(mObj.num);
   };
 
-  // 5. KPIs seguros del mes seleccionado
+  // 5. KPIs del mes seleccionado
   const kpisActuales = useMemo(() => {
     if (!dependenciaActual || !dependenciaActual.meses) return null;
     const mesKey = String(selectedMes);
@@ -323,14 +345,35 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     return dependenciaActual.meses[mesDefecto] || Object.values(dependenciaActual.meses)[0] || null;
   }, [dependenciaActual, selectedMes, anioActivo]);
 
+  // Historial mes a mes desde Enero (1) hasta el mes seleccionado para las subventanas
+  const desgloseHistoricoMeses = useMemo(() => {
+    if (!dependenciaActual || !dependenciaActual.meses) return [];
+    const list = [];
+    for (let m = 1; m <= selectedMes; m++) {
+      const dataMes = dependenciaActual.meses[String(m)] || dependenciaActual.meses[m] || null;
+      const metaMesInfo = BASE_MESES_CALENDARIO.find(b => b.num === m) || { nombre: `Mes ${m}`, abrev: `M${m}` };
+      list.push({
+        num: m,
+        nombre: metaMesInfo.nombre,
+        abrev: metaMesInfo.abrev,
+        produccion_mes: dataMes ? Number(dataMes.produccion_mes || 0) : 0,
+        total_produccion: dataMes ? Number(dataMes.total_produccion || 0) : 0,
+        ingresos_mes: dataMes ? Number(dataMes.ingresos_mes || 0) : 0,
+        total_ingresos: dataMes ? Number(dataMes.total_ingresos !== undefined ? dataMes.total_ingresos : dataMes.ingresos_mes || 0) : 0,
+        esMesSeleccionado: m === selectedMes
+      });
+    }
+    return list;
+  }, [dependenciaActual, selectedMes]);
+
   const equipoConfig = EQUIPOS_CONFIG[selectedEquipo] || EQUIPOS_CONFIG.OPJ;
 
-  // Estilos del Nivel Resolutivo en Modo Claro
+  // Estilos del Nivel Resolutivo en Modo Claro con Alto Contraste
   const nivelConfig = useMemo(() => {
     const niv = String(kpisActuales?.nivel || '').toUpperCase();
     if (niv.includes('SOBRESALIENTE') || niv.includes('MUY BUENO')) {
       return {
-        bg: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
+        bg: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
         border: '#10b981',
         text: '#047857',
         badgeBg: '#10b981',
@@ -341,7 +384,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
     if (niv.includes('BUENO')) {
       return {
-        bg: 'linear-gradient(135deg, #fffbeb 0%, #fefce8 100%)',
+        bg: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
         border: '#f59e0b',
         text: '#b45309',
         badgeBg: '#f59e0b',
@@ -352,7 +395,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
     if (niv.includes('BAJO')) {
       return {
-        bg: 'linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)',
+        bg: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
         border: '#ef4444',
         text: '#b91c1c',
         badgeBg: '#ef4444',
@@ -376,6 +419,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   const handleCerrarSesion = () => {
     setScreen('bienvenida');
     setSearchFilter('');
+    setActiveModal(null);
     showToast('Sesión finalizada correctamente');
   };
 
@@ -449,14 +493,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         position: 'relative'
       }}>
 
-        {/* Toast flotante en modo claro */}
+        {/* Toast flotante */}
         {toastMessage && (
           <div style={{
             position: 'fixed',
             top: '20px',
             left: '50%',
             transform: 'translateX(-50%)',
-            zIndex: 9999,
+            zIndex: 99999,
             background: '#0f172a',
             color: '#ffffff',
             padding: '10px 20px',
@@ -472,7 +516,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 1. PANTALLA DE BIENVENIDA (MODERNA EN TONO CLARO)               */}
+        {/* 1. PANTALLA DE BIENVENIDA (LOGO pj.png OFICIAL)                */}
         {/* ============================================================== */}
         {screen === 'bienvenida' && (
           <div className="animate-fade-in" style={{
@@ -482,24 +526,26 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             justifyContent: 'space-between',
             padding: '24px 8px 12px 8px'
           }}>
-            {/* Cabecera institucional con Logo Oficial y Sello PJ */}
+            {/* Cabecera institucional con Logo Oficial pj.png */}
             <div style={{ textAlign: 'center', marginTop: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
                 <div style={{
-                  padding: '6px',
-                  borderRadius: '24px',
-                  background: 'linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%)',
-                  boxShadow: '0 12px 32px rgba(2, 132, 199, 0.18), 0 2px 8px rgba(0, 0, 0, 0.04)',
-                  border: '1px solid rgba(2, 132, 199, 0.2)'
+                  padding: '12px',
+                  borderRadius: '28px',
+                  background: '#ffffff',
+                  boxShadow: '0 14px 32px rgba(2, 132, 199, 0.2), 0 2px 8px rgba(0, 0, 0, 0.05)',
+                  border: '2px solid #bae6fd',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}>
                   <img
-                    src="/Logo.jpg"
-                    alt="Logo Poder Judicial - CSJLE"
+                    src="/pj.png"
+                    alt="Logo Poder Judicial del Perú"
                     style={{
-                      width: '76px',
-                      height: '76px',
-                      borderRadius: '20px',
-                      objectFit: 'cover',
+                      width: '78px',
+                      height: '78px',
+                      objectFit: 'contain',
                       display: 'block'
                     }}
                   />
@@ -555,7 +601,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </p>
             </div>
 
-            {/* Bento Grid de métricas clave en tono claro */}
+            {/* Bento Grid de métricas clave */}
             <div style={{
               background: '#ffffff',
               border: '1px solid #e2e8f0',
@@ -610,7 +656,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </div>
             </div>
 
-            {/* Botón de Entrada con disparador de la animación */}
+            {/* Botón de Entrada */}
             <div style={{ width: '100%' }}>
               <button
                 onClick={handleIngresarSistema}
@@ -662,7 +708,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* INTERACCIÓN: LOGO PJ REBOTANDO Y GIRANDO EN 3D HASTA ENTRAR    */}
+        {/* INTERACCIÓN: LOGO pj.png REBOTANDO Y GIRANDO EN 3D HASTA ENTRAR */}
         {/* ============================================================== */}
         {screen === 'animacion_intro' && (
           <div style={{
@@ -686,7 +732,6 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               justifyContent: 'center',
               marginBottom: '24px'
             }}>
-              {/* Aro expansivo */}
               <div className="halo-wave" style={{
                 position: 'absolute',
                 width: '100%',
@@ -701,20 +746,22 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               <div className="logo-bounce-spin" style={{
                 position: 'relative',
                 zIndex: 2,
-                padding: '8px',
+                padding: '16px',
                 borderRadius: '32px',
                 background: '#ffffff',
                 boxShadow: '0 20px 40px rgba(2, 132, 199, 0.3), 0 8px 16px rgba(0, 0, 0, 0.08)',
-                border: '2px solid #bae6fd'
+                border: '2px solid #bae6fd',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}>
                 <img
-                  src="/Logo.jpg"
+                  src="/pj.png"
                   alt="Logo Poder Judicial"
                   style={{
-                    width: '104px',
-                    height: '104px',
-                    borderRadius: '26px',
-                    objectFit: 'cover',
+                    width: '90px',
+                    height: '90px',
+                    objectFit: 'contain',
                     display: 'block'
                   }}
                 />
@@ -757,7 +804,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </p>
             </div>
 
-            {/* Botón rápido de omitir/continuar respetando la interactividad */}
+            {/* Botón rápido de omitir/continuar */}
             <button
               onClick={() => setScreen('equipos')}
               style={{
@@ -778,7 +825,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 2. PANTALLA: EQUIPOS TÉCNICOS (5 MÓDULOS DE GESTIÓN EN BLANCO)  */}
+        {/* 2. PANTALLA: EQUIPOS TÉCNICOS (5 MÓDULOS DE GESTIÓN)            */}
         {/* ============================================================== */}
         {screen === 'equipos' && (
           <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -793,15 +840,12 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
                 <img
-                  src="/Logo.jpg"
+                  src="/pj.png"
                   alt="Logo CSJLE"
                   style={{
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '8px',
-                    objectFit: 'cover',
-                    border: '1px solid #bae6fd',
-                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
+                    width: '32px',
+                    height: '32px',
+                    objectFit: 'contain'
                   }}
                 />
                 <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
@@ -853,7 +897,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </p>
             </div>
 
-            {/* Listado de las 5 Tarjetas Bento de Equipos Técnicos en Modo Claro */}
+            {/* Listado de las 5 Tarjetas Bento de Equipos Técnicos */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, paddingBottom: '16px' }}>
               {Object.values(EQUIPOS_CONFIG).map((eq) => {
                 const count = (data?.dependencias || []).filter(d => (d.equipo_tecnico || 'OPJ') === eq.id).length || eq.badge;
@@ -1007,7 +1051,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 3. PANTALLA DE FILTROS EN TONO CLARO                            */}
+        {/* 3. PANTALLA: FILTROS INTERACTIVOS EN SUBVENTANAS / PASOS       */}
         {/* ============================================================== */}
         {screen === 'seleccion' && (
           <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -1078,11 +1122,11 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </button>
             </div>
 
-            {/* Subtítulo de contexto con conteo dinámico */}
+            {/* Cabecera de la sección de filtros */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: '#0f172a', letterSpacing: '-0.02em' }}>
-                  Filtros de Búsqueda
+                <h2 style={{ fontSize: '20px', fontWeight: '900', margin: 0, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                  Filtros Guiados
                 </h2>
                 <span style={{
                   fontSize: '11px',
@@ -1093,389 +1137,259 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   borderRadius: '6px',
                   border: `1px solid ${equipoConfig.border}`
                 }}>
-                  {dependenciasDelEquipo.length} Órganos
+                  {dependenciasDelEquipo.length} Órganos disponibles
                 </span>
               </div>
               <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
-                Seleccione distrito, sede y el juzgado a evaluar:
+                Toque cada paso para abrir su selector interactivo en subventana:
               </p>
             </div>
 
-            {/* SECCIÓN 1: DISTRITO JUDICIAL (CHIPS HORIZONTALES) */}
-            <div style={{ marginBottom: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#334155', letterSpacing: '0.04em' }}>
-                  📍 1. DISTRITO JUDICIAL
-                </label>
-                <span style={{ fontSize: '11.5px', color: '#0284c7', fontWeight: '800' }}>
-                  {distritoEfectivo}
-                </span>
-              </div>
+            {/* LISTA DE LOS 4 PASOS MINIMIZADOS E INTERACTIVOS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
 
+              {/* PASO 1: DISTRITO JUDICIAL */}
               <div
-                className="no-scrollbar"
+                onClick={() => setActiveModal('distrito')}
+                className="touch-press"
                 style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #0284c7',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 12px rgba(2, 132, 199, 0.08)',
                   display: 'flex',
-                  gap: '8px',
-                  overflowX: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                  padding: '2px 1px 6px 1px'
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
                 }}
               >
-                {distritosDisponibles.map(({ distrito, count }) => {
-                  const isSel = distrito === distritoEfectivo;
-                  return (
-                    <button
-                      key={distrito}
-                      onClick={() => handleDistritoChange(distrito)}
-                      className="touch-press"
-                      style={{
-                        flex: '0 0 auto',
-                        padding: '9px 14px',
-                        borderRadius: '12px',
-                        border: isSel ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                        background: isSel
-                          ? 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)'
-                          : '#ffffff',
-                        color: isSel ? '#ffffff' : '#334155',
-                        fontSize: '12.5px',
-                        fontWeight: isSel ? '800' : '600',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: isSel
-                          ? '0 4px 14px rgba(2, 132, 199, 0.35)'
-                          : '0 1px 2px rgba(0,0,0,0.04)',
-                        outline: 'none',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      <span>{distrito}</span>
-                      <span style={{
-                        fontSize: '10px',
-                        fontWeight: '800',
-                        padding: '1px 5px',
-                        borderRadius: '9999px',
-                        background: isSel ? 'rgba(255, 255, 255, 0.25)' : '#f1f5f9',
-                        color: isSel ? '#ffffff' : '#64748b'
-                      }}>
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* SECCIÓN 2: SEDE JUDICIAL */}
-            <div style={{ marginBottom: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#334155', letterSpacing: '0.04em' }}>
-                  🏢 2. SEDE JUDICIAL
-                </label>
-                <span style={{ fontSize: '11px', color: '#64748b' }}>
-                  {sedesDisponibles.length} {sedesDisponibles.length === 1 ? 'sede disponible' : 'sedes disponibles'}
-                </span>
-              </div>
-
-              <div
-                className="no-scrollbar"
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  overflowX: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                  padding: '2px 1px 4px 1px'
-                }}
-              >
-                {sedesDisponibles.map(({ sede, count }) => {
-                  const isSel = sede === sedeEfectiva;
-                  return (
-                    <button
-                      key={sede}
-                      onClick={() => handleSedeChange(sede)}
-                      className="touch-press"
-                      style={{
-                        flex: '0 0 auto',
-                        padding: '8px 13px',
-                        borderRadius: '10px',
-                        border: isSel ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                        background: isSel
-                          ? '#e0f2fe'
-                          : '#ffffff',
-                        color: isSel ? '#0369a1' : '#475569',
-                        fontSize: '12px',
-                        fontWeight: isSel ? '800' : '600',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: isSel ? '0 2px 8px rgba(2, 132, 199, 0.15)' : 'none',
-                        outline: 'none',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      <span>{isSel ? '✓' : '•'}</span>
-                      <span>{sede}</span>
-                      <span style={{
-                        fontSize: '9.5px',
-                        color: isSel ? '#0284c7' : '#94a3b8',
-                        fontWeight: '700'
-                      }}>
-                        ({count})
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* SECCIÓN 3: ÓRGANO JURISDICCIONAL */}
-            <div style={{ marginBottom: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#334155', letterSpacing: '0.04em' }}>
-                  ⚖️ 3. ÓRGANO JURISDICCIONAL
-                </label>
-                <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: '700' }}>
-                  {dependenciasFiltradas.length} encontrados
-                </span>
-              </div>
-
-              {/* Cápsula de búsqueda moderna en blanco */}
-              <div style={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '8px'
-              }}>
-                <span style={{
-                  position: 'absolute',
-                  left: '12px',
-                  fontSize: '13px',
-                  color: '#94a3b8',
-                  pointerEvents: 'none'
-                }}>
-                  🔍
-                </span>
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre, código o especialidad..."
-                  value={searchFilter}
-                  onChange={e => setSearchFilter(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 36px 10px 36px',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '12px',
-                    color: '#0f172a',
-                    fontSize: '12.5px',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
-                  }}
-                />
-                {searchFilter && (
-                  <button
-                    onClick={() => setSearchFilter('')}
-                    style={{
-                      position: 'absolute',
-                      right: '10px',
-                      background: '#e2e8f0',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '20px',
-                      height: '20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#475569',
-                      fontSize: '11px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              {/* Lista táctil de Órganos */}
-              <div
-                className="no-scrollbar"
-                style={{
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  paddingRight: '2px',
-                  paddingBottom: '2px'
-                }}
-              >
-                {dependenciasFiltradas.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{
-                    padding: '24px 12px',
-                    textAlign: 'center',
-                    background: '#ffffff',
-                    borderRadius: '12px',
-                    border: '1px dashed #cbd5e1',
-                    color: '#64748b',
-                    fontSize: '12px'
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: '#e0f2fe',
+                    color: '#0284c7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px',
+                    fontWeight: '800'
                   }}>
-                    No se encontraron órganos con ese filtro.
+                    📍
                   </div>
-                ) : (
-                  dependenciasFiltradas.map(dep => {
-                    const isSel = dependenciaActual?.n_dependencia === dep.n_dependencia;
-                    return (
-                      <div
-                        key={dep.n_dependencia}
-                        onClick={() => setSelectedDepId(dep.n_dependencia)}
-                        className="touch-press"
-                        style={{
-                          background: isSel
-                            ? '#f0f9ff'
-                            : '#ffffff',
-                          border: isSel
-                            ? '1.5px solid #0284c7'
-                            : '1px solid #e2e8f0',
-                          borderRadius: '14px',
-                          padding: '12px 14px',
-                          cursor: 'pointer',
-                          boxShadow: isSel
-                            ? '0 4px 14px rgba(2, 132, 199, 0.15)'
-                            : '0 1px 3px rgba(0,0,0,0.02)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{
-                              fontSize: '10px',
-                              fontWeight: '800',
-                              color: isSel ? '#0284c7' : '#64748b',
-                              background: '#f1f5f9',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              border: '1px solid #e2e8f0'
-                            }}>
-                              #{dep.n_dependencia}
-                            </span>
-                            <span style={{
-                              fontSize: '10.5px',
-                              fontWeight: '700',
-                              color: '#475569',
-                              textTransform: 'uppercase'
-                            }}>
-                              {dep.especialidad || dep.categoria || 'Judicial'}
-                            </span>
-                          </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '800', letterSpacing: '0.04em' }}>
+                      PASO 1: DISTRITO JUDICIAL
+                    </div>
+                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginTop: '1px' }}>
+                      {distritoEfectivo || 'Seleccione un distrito'}
+                    </div>
+                  </div>
+                </div>
 
-                          {isSel && (
-                            <span style={{
-                              fontSize: '10px',
-                              fontWeight: '800',
-                              color: '#047857',
-                              background: '#d1fae5',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              border: '1px solid #a7f3d0'
-                            }}>
-                              ✓ Seleccionado
-                            </span>
-                          )}
-                        </div>
-
-                        <div style={{
-                          fontSize: '13.5px',
-                          fontWeight: '800',
-                          color: '#0f172a',
-                          lineHeight: '1.35',
-                          marginBottom: '4px'
-                        }}>
-                          {dep.dependencia}
-                        </div>
-
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          fontSize: '11px',
-                          color: '#64748b'
-                        }}>
-                          <span>🏢 Sede: {dep.sede}</span>
-                          <span>•</span>
-                          <span>Meta Anual: {fmtNum(dep.meta_estandar)}</span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* SECCIÓN 4: MES DE EVALUACIÓN (CALENDARIO DE CINTA CON CANDADOS DINÁMICOS) */}
-            <div style={{ marginBottom: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#334155', letterSpacing: '0.04em' }}>
-                  📅 4. MES DE EVALUACIÓN ({selectedAnio})
-                </label>
-                <span style={{ fontSize: '11.5px', color: '#0284c7', fontWeight: '800' }}>
-                  {mesesCalendario.find(m => m.num === selectedMes)?.nombre || 'Octubre'}
-                </span>
-              </div>
-
-              <div
-                className="no-scrollbar"
-                style={{
+                <div style={{
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  color: '#15803d',
+                  fontSize: '11px',
+                  fontWeight: '800',
                   display: 'flex',
-                  gap: '6px',
-                  overflowX: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                  padding: '2px 1px 4px 1px'
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span>✓</span>
+                  <span>Cambiar</span>
+                </div>
+              </div>
+
+              {/* PASO 2: SEDE JUDICIAL */}
+              <div
+                onClick={() => setActiveModal('sede')}
+                className="touch-press"
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #38bdf8',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 12px rgba(56, 189, 248, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
                 }}
               >
-                {mesesCalendario.map(m => {
-                  const isSel = selectedMes === m.num;
-                  return (
-                    <button
-                      key={m.num}
-                      onClick={() => handleMesChange(m)}
-                      className="touch-press"
-                      style={{
-                        flex: '0 0 auto',
-                        padding: '9px 13px',
-                        borderRadius: '11px',
-                        border: isSel
-                          ? '1.5px solid #0284c7'
-                          : m.locked
-                            ? '1px dashed #cbd5e1'
-                            : '1px solid #cbd5e1',
-                        background: isSel
-                          ? 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)'
-                          : m.locked
-                            ? '#f1f5f9'
-                            : '#ffffff',
-                        color: isSel ? '#ffffff' : m.locked ? '#94a3b8' : '#334155',
-                        fontSize: '11.5px',
-                        fontWeight: isSel ? '800' : '600',
-                        cursor: m.locked ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        boxShadow: isSel
-                          ? '0 4px 12px rgba(2, 132, 199, 0.35)'
-                          : 'none',
-                        outline: 'none',
-                        opacity: m.locked ? 0.65 : 1
-                      }}
-                    >
-                      <span>{m.abrev}</span>
-                      {m.locked && <span style={{ fontSize: '10px' }}>🔒</span>}
-                    </button>
-                  );
-                })}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: '#f0f9ff',
+                    color: '#0284c7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px',
+                    fontWeight: '800'
+                  }}>
+                    🏢
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: '800', letterSpacing: '0.04em' }}>
+                      PASO 2: SEDE JUDICIAL
+                    </div>
+                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginTop: '1px' }}>
+                      {sedeEfectiva || 'Seleccione una sede'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  color: '#15803d',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span>✓</span>
+                  <span>Cambiar</span>
+                </div>
               </div>
+
+              {/* PASO 3: ÓRGANO JURISDICCIONAL */}
+              <div
+                onClick={() => setActiveModal('organo')}
+                className="touch-press"
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #6366f1',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 12px rgba(99, 102, 241, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', maxWidth: '75%' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: '#eef2ff',
+                    color: '#4f46e5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px',
+                    fontWeight: '800',
+                    flexShrink: 0
+                  }}>
+                    ⚖️
+                  </div>
+                  <div style={{ overflow: 'hidden' }}>
+                    <div style={{ fontSize: '11px', color: '#4f46e5', fontWeight: '800', letterSpacing: '0.04em' }}>
+                      PASO 3: ÓRGANO JURISDICCIONAL
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '800',
+                      color: '#0f172a',
+                      marginTop: '1px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {dependenciaActual ? dependenciaActual.dependencia : 'Seleccione el juzgado'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  color: '#15803d',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  flexShrink: 0
+                }}>
+                  <span>✓</span>
+                  <span>Cambiar</span>
+                </div>
+              </div>
+
+              {/* PASO 4: MES DE EVALUACIÓN */}
+              <div
+                onClick={() => setActiveModal('mes')}
+                className="touch-press"
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #8b5cf6',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 12px rgba(139, 92, 246, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: '#f5f3ff',
+                    color: '#7c3aed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px',
+                    fontWeight: '800'
+                  }}>
+                    📅
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: '800', letterSpacing: '0.04em' }}>
+                      PASO 4: MES DE EVALUACIÓN ({selectedAnio})
+                    </div>
+                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginTop: '1px' }}>
+                      {mesesCalendario.find(m => m.num === selectedMes)?.nombre || 'Octubre'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  color: '#15803d',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span>✓</span>
+                  <span>Cambiar</span>
+                </div>
+              </div>
+
             </div>
 
             {/* BOTÓN CTA FLOTANTE INFERIOR DENTRO DE LA ZONA DEL PULGAR */}
@@ -1523,7 +1437,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 4. PANTALLA DE KPIS Y RESULTADOS EN TONO CLARO                  */}
+        {/* 4. PANTALLA DE KPIS Y RESULTADOS CON COLOR VIBRANTE             */}
         {/* ============================================================== */}
         {screen === 'kpis' && (
           <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -1672,7 +1586,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       return (
                         <button
                           key={m.num}
-                          onClick={() => handleMesChange(m)}
+                          onClick={() => handleMesChangeDirecto(m)}
                           className="touch-press"
                           style={{
                             flex: '0 0 auto',
@@ -1777,26 +1691,46 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   </div>
                 </div>
 
-                {/* BENTO GRID DE LOS INDICADORES CLAVE */}
+                {/* BENTO GRID DE LOS INDICADORES CON MÁS COLOR VIBRANTE */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
-                  gap: '10px',
+                  gap: '12px',
                   marginBottom: '16px'
                 }}>
 
-                  {/* 1. Total de Producción con sub-nota del mes seleccionado */}
-                  <div style={{
-                    background: '#ffffff',
-                    border: '1.5px solid #0284c7',
-                    borderRadius: '16px',
-                    padding: '14px 12px',
-                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.12)'
-                  }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginBottom: '4px' }}>
-                      TOTAL DE PRODUCCIÓN
+                  {/* 1. Total de Producción (INTERACTIVO -> Abre Subventana) */}
+                  <div
+                    onClick={() => setActiveModal('produccion')}
+                    className="touch-press"
+                    style={{
+                      background: 'linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%)',
+                      border: '2px solid #0284c7',
+                      borderRadius: '18px',
+                      padding: '14px 12px',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(2, 132, 199, 0.18)',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#0369a1', fontWeight: '800' }}>
+                        TOTAL PRODUCCIÓN
+                      </span>
+                      <span style={{
+                        fontSize: '9.5px',
+                        fontWeight: '800',
+                        color: '#0284c7',
+                        background: '#ffffff',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        border: '1px solid #bae6fd'
+                      }}>
+                        📊 Ver detalle ➔
+                      </span>
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
+
+                    <div style={{ fontSize: '27px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.total_produccion)}
                     </div>
                     <div style={{ fontSize: '11px', color: '#0284c7', marginTop: '3px', fontWeight: '700' }}>
@@ -1806,16 +1740,16 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
                   {/* 2. Meta específica según Equipo Técnico */}
                   <div style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '16px',
+                    background: 'linear-gradient(145deg, #eff6ff 0%, #ffffff 100%)',
+                    border: '1.5px solid #93c5fd',
+                    borderRadius: '18px',
                     padding: '14px 12px',
-                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
+                    boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)'
                   }}>
-                    <div style={{ fontSize: '11px', color: equipoConfig.color, fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
                       {equipoConfig.labelMeta}
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
+                    <div style={{ fontSize: '27px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {(() => {
                         const val = selectedEquipo === 'OPJ' ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar) : kpisActuales.meta_preliminar;
                         if (!val || val === 0) return '—';
@@ -1831,26 +1765,36 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 3. % de Avance */}
+                  {/* 3. % de Avance con Color Vibrante */}
                   <div style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '16px',
+                    background: (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct))
+                      ? 'linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%)'
+                      : 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
+                    border: (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct))
+                      ? '1.5px solid #10b981'
+                      : '1.5px solid #f59e0b',
+                    borderRadius: '18px',
                     padding: '14px 12px',
-                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
                   }}>
-                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
+                    <div style={{
+                      fontSize: '11px',
+                      color: (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct)) ? '#047857' : '#b45309',
+                      fontWeight: '800',
+                      marginBottom: '4px',
+                      textTransform: 'uppercase'
+                    }}>
                       {equipoConfig.labelAvance}
                     </div>
                     <div style={{
-                      fontSize: '26px',
+                      fontSize: '27px',
                       fontWeight: '900',
                       letterSpacing: '-0.02em',
-                      color: (kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '#94a3b8' : (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '#059669' : '#d97706')
+                      color: (kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '#94a3b8' : (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '#047857' : '#b45309')
                     }}>
                       {(kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '—' : `${kpisActuales.avance_pct}%`}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
+                    <div style={{ fontSize: '10.5px', color: '#475569', marginTop: '2px' }}>
                       {(kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie))
                         ? 'Pendiente de Meta SIE'
                         : (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '✓ Supera avance ideal' : 'Por debajo del ideal')}
@@ -1859,57 +1803,77 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
                   {/* 4. Carga Procesal / Carga Pendiente en Ejecución */}
                   <div style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '16px',
+                    background: 'linear-gradient(145deg, #fff7ed 0%, #ffedd5 100%)',
+                    border: '1.5px solid #fb923c',
+                    borderRadius: '18px',
                     padding: '14px 12px',
-                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
+                    boxShadow: '0 2px 8px rgba(249, 115, 22, 0.08)'
                   }}>
-                    <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '800', marginBottom: '4px' }}>
-                      {selectedEquipo === 'EJECUCION' ? 'CARGA PENDIENTE EN EJECUCIÓN' : 'CARGA PROCESAL DEL MES'}
+                    <div style={{ fontSize: '11px', color: '#c2410c', fontWeight: '800', marginBottom: '4px' }}>
+                      {selectedEquipo === 'EJECUCION' ? 'CARGA EN EJECUCIÓN' : 'CARGA PROCESAL DEL MES'}
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
+                    <div style={{ fontSize: '27px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.carga_procesal_mes)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
-                      {selectedEquipo === 'EJECUCION' ? `Expedientes pendientes (${kpisActuales.nombre_mes})` : `Carga en trámite (${kpisActuales.nombre_mes})`}
+                    <div style={{ fontSize: '10.5px', color: '#475569', marginTop: '2px' }}>
+                      {selectedEquipo === 'EJECUCION' ? `Pendientes (${kpisActuales.nombre_mes})` : `En trámite (${kpisActuales.nombre_mes})`}
                     </div>
                   </div>
 
-                  {/* 5. Total de Ingresos (Acumulado hasta el mes seleccionado) */}
-                  <div style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '16px',
-                    padding: '14px 12px',
-                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
-                  }}>
-                    <div style={{ fontSize: '11px', color: '#7e22ce', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
-                      TOTAL DE INGRESOS
+                  {/* 5. Total de Ingresos (INTERACTIVO -> Abre Subventana) */}
+                  <div
+                    onClick={() => setActiveModal('ingresos')}
+                    className="touch-press"
+                    style={{
+                      background: 'linear-gradient(145deg, #faf5ff 0%, #f3e8ff 100%)',
+                      border: '2px solid #9333ea',
+                      borderRadius: '18px',
+                      padding: '14px 12px',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(147, 51, 234, 0.16)',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#7e22ce', fontWeight: '800' }}>
+                        TOTAL INGRESOS
+                      </span>
+                      <span style={{
+                        fontSize: '9.5px',
+                        fontWeight: '800',
+                        color: '#7e22ce',
+                        background: '#ffffff',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        border: '1px solid #d8b4fe'
+                      }}>
+                        📥 Ver detalle ➔
+                      </span>
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
+
+                    <div style={{ fontSize: '27px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.total_ingresos !== undefined ? kpisActuales.total_ingresos : kpisActuales.ingresos_mes)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', lineHeight: '1.3' }}>
+                    <div style={{ fontSize: '10.5px', color: '#7e22ce', marginTop: '2px', lineHeight: '1.3' }}>
                       Hasta {kpisActuales.nombre_mes} ({fmtNum(kpisActuales.ingresos_mes)} en el mes)
                     </div>
                   </div>
 
                   {/* 6. % Ideal del Mes */}
                   <div style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '16px',
+                    background: 'linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%)',
+                    border: '1.5px solid #2dd4bf',
+                    borderRadius: '18px',
                     padding: '14px 12px',
-                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
+                    boxShadow: '0 2px 8px rgba(45, 212, 191, 0.08)'
                   }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '11px', color: '#0f766e', fontWeight: '800', marginBottom: '4px' }}>
                       % IDEAL DEL MES
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284c7', letterSpacing: '-0.02em' }}>
+                    <div style={{ fontSize: '27px', fontWeight: '900', color: '#0f766e', letterSpacing: '-0.02em' }}>
                       {equipoConfig.idealFijo !== null ? equipoConfig.idealFijo : kpisActuales.ideal_mes_pct}%
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
+                    <div style={{ fontSize: '10.5px', color: '#475569', marginTop: '2px' }}>
                       {equipoConfig.idealFijo !== null ? 'Estándar mensual 100%' : `Referencia a ${kpisActuales.nombre_mes}`}
                     </div>
                   </div>
@@ -1919,12 +1883,12 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     gridColumn: '1 / -1',
                     background: nivelConfig.bg,
                     border: `1.5px solid ${nivelConfig.border}`,
-                    borderRadius: '16px',
+                    borderRadius: '18px',
                     padding: '14px 16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                    boxShadow: '0 3px 10px rgba(0, 0, 0, 0.05)'
                   }}>
                     <div>
                       <div style={{ fontSize: '11px', color: '#475569', fontWeight: '700' }}>
@@ -1965,8 +1929,683 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
           </div>
         )}
 
-        {/* Modal de Aviso: Módulo en Construcción (Tono Claro) */}
-        {modalConstruccion && (
+        {/* ============================================================== */}
+        {/* SUBVENTANA 1: SELECCIÓN DE DISTRITO JUDICIAL                   */}
+        {/* ============================================================== */}
+        {activeModal === 'distrito' && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.5)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)'
+          }}>
+            <div className="animate-sheet-up" style={{
+              background: '#ffffff',
+              borderRadius: '24px 24px 0 0',
+              padding: '20px 20px calc(env(safe-area-inset-bottom, 20px) + 20px) 20px',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '800' }}>PASO 1 DE 4</div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '900', margin: '2px 0 0 0', color: '#0f172a' }}>
+                    Seleccione Distrito Judicial
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    color: '#64748b',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="no-scrollbar" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {distritosDisponibles.map(({ distrito, count }) => {
+                  const isSel = distrito === distritoEfectivo;
+                  return (
+                    <div
+                      key={distrito}
+                      onClick={() => handleSeleccionarDistrito(distrito)}
+                      className="touch-press"
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '14px',
+                        border: isSel ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                        background: isSel ? '#f0f9ff' : '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '18px' }}>📍</span>
+                        <span style={{ fontSize: '14.5px', fontWeight: isSel ? '800' : '600', color: '#0f172a' }}>
+                          {distrito}
+                        </span>
+                      </div>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        padding: '3px 8px',
+                        borderRadius: '9999px',
+                        background: isSel ? '#0284c7' : '#f1f5f9',
+                        color: isSel ? '#ffffff' : '#64748b'
+                      }}>
+                        {count} órganos
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBVENTANA 2: SELECCIÓN DE SEDE JUDICIAL                       */}
+        {/* ============================================================== */}
+        {activeModal === 'sede' && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.5)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)'
+          }}>
+            <div className="animate-sheet-up" style={{
+              background: '#ffffff',
+              borderRadius: '24px 24px 0 0',
+              padding: '20px 20px calc(env(safe-area-inset-bottom, 20px) + 20px) 20px',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '800' }}>PASO 2 DE 4 • {distritoEfectivo}</div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '900', margin: '2px 0 0 0', color: '#0f172a' }}>
+                    Seleccione Sede Judicial
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    color: '#64748b',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="no-scrollbar" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {sedesDisponibles.map(({ sede, count }) => {
+                  const isSel = sede === sedeEfectiva;
+                  return (
+                    <div
+                      key={sede}
+                      onClick={() => handleSeleccionarSede(sede)}
+                      className="touch-press"
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '14px',
+                        border: isSel ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                        background: isSel ? '#f0f9ff' : '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '18px' }}>🏢</span>
+                        <span style={{ fontSize: '14.5px', fontWeight: isSel ? '800' : '600', color: '#0f172a' }}>
+                          {sede}
+                        </span>
+                      </div>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        padding: '3px 8px',
+                        borderRadius: '9999px',
+                        background: isSel ? '#0284c7' : '#f1f5f9',
+                        color: isSel ? '#ffffff' : '#64748b'
+                      }}>
+                        {count} {count === 1 ? 'juzgado' : 'juzgados'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBVENTANA 3: SELECCIÓN DE ÓRGANO JURISDICCIONAL               */}
+        {/* ============================================================== */}
+        {activeModal === 'organo' && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.5)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)'
+          }}>
+            <div className="animate-sheet-up" style={{
+              background: '#ffffff',
+              borderRadius: '24px 24px 0 0',
+              padding: '20px 20px calc(env(safe-area-inset-bottom, 20px) + 20px) 20px',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '800' }}>PASO 3 DE 4 • {sedeEfectiva}</div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '900', margin: '2px 0 0 0', color: '#0f172a' }}>
+                    Seleccione Órgano Judicial
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    color: '#64748b',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Buscador inteligente */}
+              <div style={{ position: 'relative', marginBottom: '12px' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '11px', color: '#94a3b8' }}>🔍</span>
+                <input
+                  type="text"
+                  placeholder="Buscar órgano por nombre o código..."
+                  value={searchFilter}
+                  onChange={e => setSearchFilter(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '11px 36px 11px 36px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div className="no-scrollbar" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {dependenciasFiltradas.map(dep => {
+                  const isSel = dependenciaActual?.n_dependencia === dep.n_dependencia;
+                  return (
+                    <div
+                      key={dep.n_dependencia}
+                      onClick={() => handleSeleccionarOrgano(dep.n_dependencia)}
+                      className="touch-press"
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: '14px',
+                        border: isSel ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                        background: isSel ? '#f0f9ff' : '#ffffff',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: '800',
+                          color: isSel ? '#0284c7' : '#64748b',
+                          background: '#f1f5f9',
+                          padding: '2px 6px',
+                          borderRadius: '4px'
+                        }}>
+                          #{dep.n_dependencia} • {dep.especialidad || 'Judicial'}
+                        </span>
+                        {isSel && (
+                          <span style={{ fontSize: '10.5px', fontWeight: '800', color: '#059669' }}>
+                            ✓ Seleccionado
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0f172a' }}>
+                        {dep.dependencia}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                        Meta Anual: {fmtNum(dep.meta_estandar)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBVENTANA 4: SELECCIÓN DE MES DE EVALUACIÓN                   */}
+        {/* ============================================================== */}
+        {activeModal === 'mes' && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.5)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)'
+          }}>
+            <div className="animate-sheet-up" style={{
+              background: '#ffffff',
+              borderRadius: '24px 24px 0 0',
+              padding: '20px 20px calc(env(safe-area-inset-bottom, 20px) + 20px) 20px',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '800' }}>PASO 4 DE 4 • AÑO {selectedAnio}</div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '900', margin: '2px 0 0 0', color: '#0f172a' }}>
+                    Seleccione Mes de Evaluación
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    color: '#64748b',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {mesesCalendario.map(m => {
+                  const isSel = selectedMes === m.num;
+                  return (
+                    <button
+                      key={m.num}
+                      onClick={() => handleSeleccionarMesEnModal(m)}
+                      className="touch-press"
+                      style={{
+                        padding: '16px 14px',
+                        borderRadius: '16px',
+                        border: isSel ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                        background: isSel ? '#f0f9ff' : m.locked ? '#f8fafc' : '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: m.locked ? 'not-allowed' : 'pointer',
+                        opacity: m.locked ? 0.6 : 1,
+                        outline: 'none'
+                      }}
+                    >
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '15px', fontWeight: '800', color: isSel ? '#0284c7' : '#0f172a' }}>
+                          {m.nombre}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>
+                          {m.locked ? 'No cargado' : 'Disponible'}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '16px' }}>
+                        {m.locked ? '🔒' : isSel ? '✓' : '➔'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBVENTANA 5: DESGLOSE MENSUAL DE PRODUCCIÓN (TOTAL PRODUCCIÓN) */}
+        {/* ============================================================== */}
+        {activeModal === 'produccion' && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.55)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)'
+          }}>
+            <div className="animate-sheet-up" style={{
+              background: '#ffffff',
+              borderRadius: '24px 24px 0 0',
+              padding: '22px 20px calc(env(safe-area-inset-bottom, 20px) + 20px) 20px',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '800' }}>
+                    📊 DESGLOSE MES A MES (ENERO A {kpisActuales?.nombre_mes?.toUpperCase()})
+                  </div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '900', margin: '2px 0 0 0', color: '#0f172a' }}>
+                    Producción Mensual
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    color: '#64748b',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{
+                background: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                borderRadius: '12px',
+                padding: '8px 12px',
+                fontSize: '12px',
+                color: '#0369a1',
+                marginBottom: '12px',
+                lineHeight: '1.4'
+              }}>
+                🏛️ <strong>{dependenciaActual?.dependencia}</strong>
+              </div>
+
+              {/* Lista de meses con su producción */}
+              <div className="no-scrollbar" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                {desgloseHistoricoMeses.map(m => (
+                  <div
+                    key={m.num}
+                    style={{
+                      background: m.esMesSeleccionado ? '#e0f2fe' : '#f8fafc',
+                      border: m.esMesSeleccionado ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                      borderRadius: '14px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: m.esMesSeleccionado ? '#0284c7' : '#e2e8f0',
+                        color: m.esMesSeleccionado ? '#ffffff' : '#475569',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        fontWeight: '800'
+                      }}>
+                        {m.abrev}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0f172a' }}>
+                          {m.nombre} {m.esMesSeleccionado && <span style={{ fontSize: '10px', color: '#0284c7', fontWeight: '800' }}>• Evaluado</span>}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>
+                          Acumulado: <strong>{fmtNum(m.total_produccion)}</strong> exp.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '17px', fontWeight: '900', color: '#0f172a' }}>
+                        {fmtNum(m.produccion_mes)}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#0284c7', fontWeight: '700' }}>
+                        resueltos
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Botón Salir / Volver a los KPIs */}
+              <button
+                onClick={() => setActiveModal(null)}
+                className="touch-press"
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>← Volver a los Indicadores</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBVENTANA 6: DESGLOSE MENSUAL DE INGRESOS (TOTAL INGRESOS)    */}
+        {/* ============================================================== */}
+        {activeModal === 'ingresos' && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.55)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)'
+          }}>
+            <div className="animate-sheet-up" style={{
+              background: '#ffffff',
+              borderRadius: '24px 24px 0 0',
+              padding: '22px 20px calc(env(safe-area-inset-bottom, 20px) + 20px) 20px',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#9333ea', fontWeight: '800' }}>
+                    📥 DESGLOSE MES A MES (ENERO A {kpisActuales?.nombre_mes?.toUpperCase()})
+                  </div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '900', margin: '2px 0 0 0', color: '#0f172a' }}>
+                    Ingresos Mensuales
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    color: '#64748b',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{
+                background: '#faf5ff',
+                border: '1px solid #e9d5ff',
+                borderRadius: '12px',
+                padding: '8px 12px',
+                fontSize: '12px',
+                color: '#7e22ce',
+                marginBottom: '12px',
+                lineHeight: '1.4'
+              }}>
+                🏛️ <strong>{dependenciaActual?.dependencia}</strong>
+              </div>
+
+              {/* Lista de meses con sus ingresos */}
+              <div className="no-scrollbar" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                {desgloseHistoricoMeses.map(m => (
+                  <div
+                    key={m.num}
+                    style={{
+                      background: m.esMesSeleccionado ? '#f3e8ff' : '#f8fafc',
+                      border: m.esMesSeleccionado ? '2px solid #9333ea' : '1px solid #e2e8f0',
+                      borderRadius: '14px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: m.esMesSeleccionado ? '#9333ea' : '#e2e8f0',
+                        color: m.esMesSeleccionado ? '#ffffff' : '#475569',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        fontWeight: '800'
+                      }}>
+                        {m.abrev}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0f172a' }}>
+                          {m.nombre} {m.esMesSeleccionado && <span style={{ fontSize: '10px', color: '#9333ea', fontWeight: '800' }}>• Evaluado</span>}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>
+                          Acumulado: <strong>{fmtNum(m.total_ingresos)}</strong> exp.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '17px', fontWeight: '900', color: '#0f172a' }}>
+                        {fmtNum(m.ingresos_mes)}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#9333ea', fontWeight: '700' }}>
+                        ingresos
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Botón Salir / Volver a los KPIs */}
+              <button
+                onClick={() => setActiveModal(null)}
+                className="touch-press"
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(147, 51, 234, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>← Volver a los Indicadores</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Aviso: Módulo en Construcción */}
+        {activeModal === 'construccion' && (
           <div style={{
             position: 'fixed',
             inset: 0,
@@ -2010,7 +2649,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 Actualmente se están analizando las nuevas directrices e indicadores oficiales que se mostrarán para los Juzgados de Ejecución.
               </p>
               <button
-                onClick={() => setModalConstruccion(false)}
+                onClick={() => setActiveModal(null)}
                 className="touch-press"
                 style={{
                   width: '100%',
