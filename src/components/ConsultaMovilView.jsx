@@ -7,17 +7,18 @@ function fmtNum(n) {
   return Math.round(Number(n)).toLocaleString('es-PE');
 }
 
-// Configuración de los 5 Equipos Técnicos institucionales (incluyendo EJECUCIÓN)
+// Configuración de los 5 Equipos Técnicos institucionales en Modo Claro
 const EQUIPOS_CONFIG = {
   OPJ: {
     id: 'OPJ',
     nombre: 'OPJ (No Penales)',
     badge: '73 Órganos',
     icon: '⚖️',
-    color: '#38bdf8',
-    glow: 'rgba(56, 189, 248, 0.28)',
-    grad: 'linear-gradient(145deg, rgba(56, 189, 248, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
-    border: 'rgba(56, 189, 248, 0.35)',
+    color: '#0284c7',
+    glow: 'rgba(2, 132, 199, 0.15)',
+    grad: 'linear-gradient(145deg, #f0f9ff 0%, #ffffff 100%)',
+    border: '#bae6fd',
+    accentBg: '#e0f2fe',
     desc: 'Órganos Jurisdiccionales No Penales (Civil, Laboral, Familia, Paz Letrado).',
     labelMeta: 'Meta SIE PJ',
     labelAvance: '% de Avance',
@@ -29,10 +30,11 @@ const EQUIPOS_CONFIG = {
     nombre: 'UETI (Penal)',
     badge: '52 Órganos',
     icon: '⚖️',
-    color: '#c084fc',
-    glow: 'rgba(192, 132, 252, 0.28)',
-    grad: 'linear-gradient(145deg, rgba(168, 85, 247, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
-    border: 'rgba(168, 85, 247, 0.35)',
+    color: '#7e22ce',
+    glow: 'rgba(126, 34, 206, 0.15)',
+    grad: 'linear-gradient(145deg, #faf5ff 0%, #ffffff 100%)',
+    border: '#e9d5ff',
+    accentBg: '#f3e8ff',
     desc: 'Unidad de Equipo Técnico Institucional del Código Procesal Penal.',
     labelMeta: 'Meta Preliminar (Reajuste)',
     labelAvance: '% de Avance (%Prod)',
@@ -44,10 +46,11 @@ const EQUIPOS_CONFIG = {
     nombre: 'Flagrancia',
     badge: '14 Órganos',
     icon: '⚡',
-    color: '#fbbf24',
-    glow: 'rgba(251, 191, 36, 0.28)',
-    grad: 'linear-gradient(145deg, rgba(245, 158, 11, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
-    border: 'rgba(245, 158, 11, 0.35)',
+    color: '#b45309',
+    glow: 'rgba(180, 83, 9, 0.15)',
+    grad: 'linear-gradient(145deg, #fffbeb 0%, #ffffff 100%)',
+    border: '#fde68a',
+    accentBg: '#fef3c7',
     desc: 'Unidades de Flagrancia Delictiva (JIP y JUP Flagrancia).',
     labelMeta: 'Meta Preliminar (Meta)',
     labelAvance: '% de Avance (Avance de meta)',
@@ -59,10 +62,11 @@ const EQUIPOS_CONFIG = {
     nombre: 'Violencia',
     badge: '25 Órganos',
     icon: '🛡️',
-    color: '#f472b6',
-    glow: 'rgba(244, 114, 182, 0.28)',
-    grad: 'linear-gradient(145deg, rgba(236, 72, 153, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
-    border: 'rgba(236, 72, 153, 0.35)',
+    color: '#be185d',
+    glow: 'rgba(190, 24, 93, 0.15)',
+    grad: 'linear-gradient(145deg, #fdf2f8 0%, #ffffff 100%)',
+    border: '#fbcfe8',
+    accentBg: '#fce7f3',
     desc: 'Módulo de Violencia Familiar contra las Mujeres (PPOR 1002).',
     labelMeta: 'Meta Preliminar',
     labelAvance: '% de Avance',
@@ -74,10 +78,11 @@ const EQUIPOS_CONFIG = {
     nombre: 'Juzgados de Ejecución',
     badge: 'En construcción',
     icon: '📋',
-    color: '#eab308',
-    glow: 'rgba(234, 179, 8, 0.25)',
-    grad: 'linear-gradient(145deg, rgba(234, 179, 8, 0.12) 0%, rgba(15, 23, 42, 0.85) 100%)',
-    border: 'rgba(234, 179, 8, 0.38)',
+    color: '#a16207',
+    glow: 'rgba(161, 98, 7, 0.15)',
+    grad: 'linear-gradient(145deg, #fefce8 0%, #ffffff 100%)',
+    border: '#fde047',
+    accentBg: '#fef9c3',
     desc: 'Módulo de Ejecución y Descarga Procesal. Analizando datos e indicadores para su integración.',
     labelMeta: 'En construcción',
     labelAvance: 'Analizando datos',
@@ -104,13 +109,13 @@ const BASE_MESES_CALENDARIO = [
 ];
 
 export default function ConsultaMovilView({ onBackToDashboard }) {
-  // Flujo de pantallas: 'bienvenida' | 'equipos' | 'seleccion' | 'kpis'
+  // Flujo de pantallas: 'bienvenida' | 'animacion_intro' | 'equipos' | 'seleccion' | 'kpis'
   const [screen, setScreen] = useState('bienvenida');
 
   // Equipo Técnico seleccionado
   const [selectedEquipo, setSelectedEquipo] = useState('OPJ');
 
-  // Modal para avisar estado En Construcción / Analizando datos
+  // Modal para avisar estado En Construcción
   const [modalConstruccion, setModalConstruccion] = useState(false);
 
   // Datos consolidados (166 dependencias activas incluyendo 4639 en EJECUCIÓN)
@@ -147,6 +152,15 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
         .catch(() => {});
     } catch (_) {}
   }, []);
+
+  // Transición animada interactiva con el logo del PJ
+  const handleIngresarSistema = () => {
+    setScreen('animacion_intro');
+    // Tras 1.6 segundos de rotación y rebote, cuando el logo mira de frente, pasa a las tarjetas
+    setTimeout(() => {
+      setScreen('equipos');
+    }, 1650);
+  };
 
   // 1. Filtrar las dependencias exclusivas del Equipo Técnico seleccionado
   const dependenciasDelEquipo = useMemo(() => {
@@ -276,8 +290,6 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   const maxMesActivo = Number(data?.max_mes_subido || 10);
 
   const mesesCalendario = useMemo(() => {
-    // Para 2026, los datos oficiales del app inician en Setiembre (meses 9 al 12).
-    // A partir de 2027 en adelante, despliega el ciclo completo de Enero a Diciembre.
     const mesInicio = anioActivo === 2026 ? 9 : 1;
     return BASE_MESES_CALENDARIO
       .filter(m => m.num >= mesInicio)
@@ -287,14 +299,12 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
       }));
   }, [anioActivo, maxMesActivo]);
 
-  // Si estamos en 2026 y selectedMes no pertenece al rango, fijar en el mes activo
   useEffect(() => {
     if (anioActivo === 2026 && selectedMes < 9) {
       setSelectedMes(maxMesActivo >= 9 ? maxMesActivo : 9);
     }
   }, [anioActivo, selectedMes, maxMesActivo]);
 
-  // Manejador de cambio de mes con bloqueo háptico / toast
   const handleMesChange = (mObj) => {
     if (mObj.locked) {
       showToast(`🔒 ${mObj.nombre}: Pendiente de ingesta oficial`);
@@ -315,15 +325,15 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
 
   const equipoConfig = EQUIPOS_CONFIG[selectedEquipo] || EQUIPOS_CONFIG.OPJ;
 
-  // Estilos del Nivel Resolutivo / Cumplimiento
+  // Estilos del Nivel Resolutivo en Modo Claro
   const nivelConfig = useMemo(() => {
     const niv = String(kpisActuales?.nivel || '').toUpperCase();
     if (niv.includes('SOBRESALIENTE') || niv.includes('MUY BUENO')) {
       return {
-        bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.28) 100%)',
+        bg: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
         border: '#10b981',
-        text: '#34d399',
-        badgeBg: '#059669',
+        text: '#047857',
+        badgeBg: '#10b981',
         icon: '▲',
         label: niv.includes('SOBRESALIENTE') ? 'SOBRESALIENTE' : 'MUY BUENO',
         descripcion: 'Supera el estándar y el avance ideal proyectado'
@@ -331,10 +341,10 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
     if (niv.includes('BUENO')) {
       return {
-        bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.28) 100%)',
+        bg: 'linear-gradient(135deg, #fffbeb 0%, #fefce8 100%)',
         border: '#f59e0b',
-        text: '#fbbf24',
-        badgeBg: '#d97706',
+        text: '#b45309',
+        badgeBg: '#f59e0b',
         icon: '▶',
         label: 'BUENO',
         descripcion: 'Cumple el rango aceptable de metas judiciales'
@@ -342,20 +352,20 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     }
     if (niv.includes('BAJO')) {
       return {
-        bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(220, 38, 38, 0.28) 100%)',
+        bg: 'linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)',
         border: '#ef4444',
-        text: '#f87171',
-        badgeBg: '#dc2626',
+        text: '#b91c1c',
+        badgeBg: '#ef4444',
         icon: '▼',
         label: 'BAJO',
         descripcion: 'Por debajo del umbral mínimo resolutivo mensual'
       };
     }
     return {
-      bg: 'linear-gradient(135deg, rgba(148, 163, 184, 0.14) 0%, rgba(100, 116, 139, 0.25) 100%)',
-      border: '#64748b',
-      text: '#94a3b8',
-      badgeBg: '#475569',
+      bg: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+      border: '#cbd5e1',
+      text: '#475569',
+      badgeBg: '#94a3b8',
       icon: '⚪',
       label: 'SIN META',
       descripcion: 'Pendiente de asignación de meta o sin turno activo'
@@ -369,7 +379,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     showToast('Sesión finalizada correctamente');
   };
 
-  // Copiar resumen de gestión listo para compartir
+  // Copiar resumen de gestión
   const handleCopiarResumen = () => {
     if (!dependenciaActual || !kpisActuales) return;
     const metaLabel = equipoConfig.labelMeta;
@@ -411,8 +421,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
     <div style={{
       width: '100%',
       minHeight: '100dvh',
-      background: 'radial-gradient(circle at 50% 0%, #0f1f3d 0%, #080d1a 60%, #050811 100%)',
-      color: '#f8fafc',
+      background: 'radial-gradient(ellipse 90% 60% at 50% -10%, #e0f2fe 0%, #f8fafc 55%, #f1f5f9 100%)',
+      color: '#0f172a',
       fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
       display: 'flex',
       flexDirection: 'column',
@@ -424,7 +434,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
       overflowX: 'hidden'
     }}>
 
-      {/* Contenedor centralizado mobile-first con safe-area padding */}
+      {/* Contenedor centralizado mobile-first en tono claro */}
       <div style={{
         width: '100%',
         maxWidth: '520px',
@@ -439,7 +449,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         position: 'relative'
       }}>
 
-        {/* Toast flotante estilo Apple Liquid Pill */}
+        {/* Toast flotante en modo claro */}
         {toastMessage && (
           <div style={{
             position: 'fixed',
@@ -447,16 +457,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9999,
-            background: 'rgba(15, 23, 42, 0.94)',
-            border: '1px solid rgba(56, 189, 248, 0.4)',
+            background: '#0f172a',
             color: '#ffffff',
             padding: '10px 20px',
             borderRadius: '9999px',
             fontSize: '13px',
             fontWeight: '700',
-            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.25)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            boxShadow: '0 12px 28px rgba(15, 23, 42, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
             animation: 'fadeIn 180ms ease'
           }}>
             {toastMessage}
@@ -464,7 +472,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 1. PANTALLA DE BIENVENIDA (MODERNA, HERO METRICS, INTENCIONAL) */}
+        {/* 1. PANTALLA DE BIENVENIDA (MODERNA EN TONO CLARO)               */}
         {/* ============================================================== */}
         {screen === 'bienvenida' && (
           <div className="animate-fade-in" style={{
@@ -474,21 +482,22 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             justifyContent: 'space-between',
             padding: '24px 8px 12px 8px'
           }}>
-            {/* Cabecera institucional con Logo Oficial y Efecto Halo */}
+            {/* Cabecera institucional con Logo Oficial y Sello PJ */}
             <div style={{ textAlign: 'center', marginTop: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
                 <div style={{
-                  padding: '5px',
+                  padding: '6px',
                   borderRadius: '24px',
-                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.45) 0%, rgba(30, 58, 138, 0.3) 100%)',
-                  boxShadow: '0 12px 36px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
+                  background: 'linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%)',
+                  boxShadow: '0 12px 32px rgba(2, 132, 199, 0.18), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(2, 132, 199, 0.2)'
                 }}>
                   <img
                     src="/Logo.jpg"
                     alt="Logo Poder Judicial - CSJLE"
                     style={{
-                      width: '74px',
-                      height: '74px',
+                      width: '76px',
+                      height: '76px',
                       borderRadius: '20px',
                       objectFit: 'cover',
                       display: 'block'
@@ -504,13 +513,12 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 gap: '8px',
                 padding: '6px 14px',
                 borderRadius: '9999px',
-                background: 'rgba(56, 189, 248, 0.1)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                marginBottom: '14px',
-                backdropFilter: 'blur(10px)'
+                background: '#e0f2fe',
+                border: '1px solid #bae6fd',
+                marginBottom: '14px'
               }}>
                 <span style={{ fontSize: '13px' }}>⚖️</span>
-                <span style={{ fontSize: '11px', fontWeight: '800', color: '#38bdf8', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '11px', fontWeight: '800', color: '#0369a1', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   Poder Judicial del Perú
                 </span>
               </div>
@@ -520,17 +528,15 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 fontWeight: '900',
                 margin: '0 0 6px 0',
                 letterSpacing: '-0.03em',
-                background: 'linear-gradient(135deg, #ffffff 40%, #94a3b8 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
+                color: '#0f172a'
               }}>
                 SIMENGJ
               </h1>
 
               <div style={{
                 fontSize: '13px',
-                fontWeight: '700',
-                color: '#38bdf8',
+                fontWeight: '800',
+                color: '#0284c7',
                 marginBottom: '12px',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase'
@@ -539,8 +545,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </div>
 
               <p style={{
-                fontSize: '13px',
-                color: '#94a3b8',
+                fontSize: '13.5px',
+                color: '#64748b',
                 lineHeight: '1.6',
                 margin: '0 auto',
                 maxWidth: '360px'
@@ -549,73 +555,72 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </p>
             </div>
 
-            {/* Bento Grid de métricas clave del sistema */}
+            {/* Bento Grid de métricas clave en tono claro */}
             <div style={{
-              background: 'rgba(15, 23, 42, 0.65)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '22px',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '24px',
               padding: '18px',
-              backdropFilter: 'blur(16px)',
               margin: '22px 0',
-              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)'
             }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.75)',
-                  border: '1px solid rgba(56, 189, 248, 0.2)',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '16px',
                   padding: '14px',
                   textAlign: 'center'
                 }}>
                   <div style={{ fontSize: '24px', marginBottom: '2px' }}>🏛️</div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>166</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>Dependencias Activas</div>
+                  <div style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a' }}>166</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: '600' }}>Dependencias Activas</div>
                 </div>
 
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.75)',
-                  border: '1px solid rgba(168, 85, 247, 0.2)',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '16px',
                   padding: '14px',
                   textAlign: 'center'
                 }}>
                   <div style={{ fontSize: '24px', marginBottom: '2px' }}>📊</div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>5 Módulos</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>Equipos Técnicos</div>
+                  <div style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a' }}>5 Módulos</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: '600' }}>Equipos Técnicos</div>
                 </div>
               </div>
 
               {/* Indicador de último mes oficial activo */}
               <div style={{
                 marginTop: '12px',
-                padding: '8px 12px',
-                background: 'rgba(2, 132, 199, 0.12)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
+                padding: '9px 12px',
+                background: '#f0f9ff',
+                border: '1px solid #bae6fd',
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between'
               }}>
-                <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: '600' }}>
+                <span style={{ fontSize: '12px', color: '#475569', fontWeight: '600' }}>
                   Datos oficiales actualizados:
                 </span>
-                <span style={{ fontSize: '11.5px', color: '#38bdf8', fontWeight: '800' }}>
+                <span style={{ fontSize: '12px', color: '#0284c7', fontWeight: '800' }}>
                   Octubre 2026 ✓
                 </span>
               </div>
             </div>
 
-            {/* Botón de Entrada estilo Thumb-Zone */}
+            {/* Botón de Entrada con disparador de la animación */}
             <div style={{ width: '100%' }}>
               <button
-                onClick={() => setScreen('equipos')}
+                onClick={handleIngresarSistema}
                 className="touch-press"
                 style={{
                   width: '100%',
                   padding: '16px',
                   borderRadius: '18px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)',
                   color: '#ffffff',
                   fontSize: '16px',
                   fontWeight: '800',
@@ -625,7 +630,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: '0 12px 28px -6px rgba(2, 132, 199, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35)',
+                  boxShadow: '0 10px 24px -4px rgba(2, 132, 199, 0.45)',
                   outline: 'none'
                 }}
               >
@@ -657,7 +662,123 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 2. PANTALLA: EQUIPOS TÉCNICOS (5 MÓDULOS DE GESTIÓN)            */}
+        {/* INTERACCIÓN: LOGO PJ REBOTANDO Y GIRANDO EN 3D HASTA ENTRAR    */}
+        {/* ============================================================== */}
+        {screen === 'animacion_intro' && (
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            textAlign: 'center',
+            position: 'relative',
+            perspective: '1000px'
+          }}>
+            {/* Aro de brillo y vibración institucional */}
+            <div style={{
+              position: 'relative',
+              width: '140px',
+              height: '140px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '24px'
+            }}>
+              {/* Aro expansivo */}
+              <div className="halo-wave" style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                borderRadius: '36px',
+                background: 'rgba(2, 132, 199, 0.25)',
+                filter: 'blur(10px)',
+                zIndex: 0
+              }} />
+
+              {/* Contenedor del Logo con animación 3D de Rebote y Giro */}
+              <div className="logo-bounce-spin" style={{
+                position: 'relative',
+                zIndex: 2,
+                padding: '8px',
+                borderRadius: '32px',
+                background: '#ffffff',
+                boxShadow: '0 20px 40px rgba(2, 132, 199, 0.3), 0 8px 16px rgba(0, 0, 0, 0.08)',
+                border: '2px solid #bae6fd'
+              }}>
+                <img
+                  src="/Logo.jpg"
+                  alt="Logo Poder Judicial"
+                  style={{
+                    width: '104px',
+                    height: '104px',
+                    borderRadius: '26px',
+                    objectFit: 'cover',
+                    display: 'block'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="animate-slide-up" style={{ animationDelay: '150ms' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 12px',
+                borderRadius: '9999px',
+                background: '#e0f2fe',
+                color: '#0284c7',
+                fontSize: '11px',
+                fontWeight: '800',
+                letterSpacing: '0.04em',
+                marginBottom: '8px'
+              }}>
+                ⚖️ CORTE SUPERIOR DE JUSTICIA DE LIMA ESTE
+              </div>
+
+              <h2 style={{
+                fontSize: '22px',
+                fontWeight: '900',
+                color: '#0f172a',
+                margin: '0 0 4px 0',
+                letterSpacing: '-0.02em'
+              }}>
+                Cargando Módulos Oficiales...
+              </h2>
+
+              <p style={{
+                fontSize: '12.5px',
+                color: '#64748b',
+                margin: 0
+              }}>
+                Sincronizando los 5 Equipos Técnicos
+              </p>
+            </div>
+
+            {/* Botón rápido de omitir/continuar respetando la interactividad */}
+            <button
+              onClick={() => setScreen('equipos')}
+              style={{
+                position: 'absolute',
+                bottom: '24px',
+                background: 'transparent',
+                border: 'none',
+                color: '#94a3b8',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                padding: '8px 16px'
+              }}
+            >
+              Saltar intro ➔
+            </button>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* 2. PANTALLA: EQUIPOS TÉCNICOS (5 MÓDULOS DE GESTIÓN EN BLANCO)  */}
         {/* ============================================================== */}
         {screen === 'equipos' && (
           <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -667,7 +788,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               alignItems: 'center',
               justifyContent: 'space-between',
               paddingBottom: '14px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              borderBottom: '1px solid #e2e8f0',
               marginBottom: '16px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
@@ -675,15 +796,15 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   src="/Logo.jpg"
                   alt="Logo CSJLE"
                   style={{
-                    width: '28px',
-                    height: '28px',
+                    width: '30px',
+                    height: '30px',
                     borderRadius: '8px',
                     objectFit: 'cover',
-                    border: '1px solid rgba(56, 189, 248, 0.4)',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)'
+                    border: '1px solid #bae6fd',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
                   }}
                 />
-                <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#ffffff' }}>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
                   SIMENGJ • CSJLE
                 </span>
               </div>
@@ -692,9 +813,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 onClick={handleCerrarSesion}
                 className="touch-press"
                 style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#f87171',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#dc2626',
                   borderRadius: '10px',
                   padding: '6px 12px',
                   fontSize: '12px',
@@ -706,7 +827,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 }}
               >
                 <span>🚪</span>
-                <span>Cerrar Sesión</span>
+                <span>Salir</span>
               </button>
             </div>
 
@@ -715,8 +836,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 display: 'inline-block',
                 padding: '4px 10px',
                 borderRadius: '8px',
-                background: 'rgba(56, 189, 248, 0.12)',
-                color: '#38bdf8',
+                background: '#e0f2fe',
+                color: '#0369a1',
                 fontSize: '11px',
                 fontWeight: '800',
                 letterSpacing: '0.04em',
@@ -724,15 +845,15 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               }}>
                 MÓDULOS DE GESTIÓN (5)
               </div>
-              <h2 style={{ fontSize: '24px', fontWeight: '900', margin: '0 0 6px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '900', margin: '0 0 6px 0', color: '#0f172a', letterSpacing: '-0.02em' }}>
                 Equipos Técnicos
               </h2>
-              <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: 0, lineHeight: '1.45' }}>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0, lineHeight: '1.45' }}>
                 Seleccione el equipo institucional para consultar indicadores oficiales y metas:
               </p>
             </div>
 
-            {/* Listado de las 5 Tarjetas Bento de Equipos Técnicos */}
+            {/* Listado de las 5 Tarjetas Bento de Equipos Técnicos en Modo Claro */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, paddingBottom: '16px' }}>
               {Object.values(EQUIPOS_CONFIG).map((eq) => {
                 const count = (data?.dependencias || []).filter(d => (d.equipo_tecnico || 'OPJ') === eq.id).length || eq.badge;
@@ -741,19 +862,19 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   <div
                     key={eq.id}
                     onClick={() => handleSeleccionarEquipo(eq.id)}
-                    className="touch-press glass-card"
+                    className="touch-press"
                     style={{
                       background: eq.enConstruccion
-                        ? 'linear-gradient(145deg, rgba(234, 179, 8, 0.12) 0%, rgba(15, 23, 42, 0.88) 100%)'
+                        ? 'linear-gradient(145deg, #fefce8 0%, #ffffff 100%)'
                         : eq.grad,
                       border: eq.enConstruccion
-                        ? '1.5px dashed rgba(234, 179, 8, 0.45)'
+                        ? '1.5px dashed #facc15'
                         : `1.5px solid ${eq.border}`,
                       borderRadius: '18px',
-                      padding: '15px 16px',
+                      padding: '16px',
                       cursor: 'pointer',
                       position: 'relative',
-                      overflow: 'hidden'
+                      boxShadow: '0 4px 16px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -763,21 +884,21 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                           width: '42px',
                           height: '42px',
                           borderRadius: '12px',
-                          background: 'rgba(15, 23, 42, 0.75)',
+                          background: eq.accentBg,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           border: `1px solid ${eq.border}`,
-                          boxShadow: `0 4px 12px ${eq.glow}`
+                          boxShadow: `0 2px 8px ${eq.glow}`
                         }}>
                           {eq.icon}
                         </div>
                         <div>
-                          <div style={{ fontSize: '16.5px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.01em' }}>
+                          <div style={{ fontSize: '16.5px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.01em' }}>
                             {eq.nombre}
                           </div>
                           {eq.enConstruccion ? (
-                            <div style={{ fontSize: '11.5px', color: '#facc15', fontWeight: '800' }}>
+                            <div style={{ fontSize: '11.5px', color: '#a16207', fontWeight: '800' }}>
                               🚧 En construcción • Analizando datos
                             </div>
                           ) : (
@@ -793,12 +914,12 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         height: '32px',
                         borderRadius: eq.enConstruccion ? '8px' : '50%',
                         padding: eq.enConstruccion ? '0 10px' : '0',
-                        background: eq.enConstruccion ? 'rgba(234, 179, 8, 0.18)' : 'rgba(255, 255, 255, 0.08)',
-                        border: eq.enConstruccion ? '1px solid rgba(234, 179, 8, 0.35)' : '1px solid rgba(255, 255, 255, 0.12)',
+                        background: eq.enConstruccion ? '#fef9c3' : '#f1f5f9',
+                        border: eq.enConstruccion ? '1px solid #fde047' : '1px solid #e2e8f0',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: eq.enConstruccion ? '#facc15' : eq.color,
+                        color: eq.enConstruccion ? '#854d0e' : eq.color,
                         fontWeight: '800',
                         fontSize: eq.enConstruccion ? '11px' : '14px'
                       }}>
@@ -807,8 +928,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
 
                     <div style={{
-                      fontSize: '12px',
-                      color: '#cbd5e1',
+                      fontSize: '12.5px',
+                      color: '#475569',
                       lineHeight: '1.45',
                       marginBottom: '10px'
                     }}>
@@ -820,7 +941,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       flexWrap: 'wrap',
                       gap: '6px',
                       paddingTop: '8px',
-                      borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+                      borderTop: '1px solid rgba(0, 0, 0, 0.06)'
                     }}>
                       {eq.enConstruccion ? (
                         <span style={{
@@ -828,9 +949,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                           fontWeight: '800',
                           padding: '3px 8px',
                           borderRadius: '6px',
-                          background: 'rgba(234, 179, 8, 0.18)',
-                          color: '#facc15',
-                          border: '1px solid rgba(234, 179, 8, 0.35)'
+                          background: '#fef08a',
+                          color: '#854d0e',
+                          border: '1px solid #facc15'
                         }}>
                           🚧 En construcción • Analizando datos
                         </span>
@@ -841,9 +962,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                             fontWeight: '700',
                             padding: '3px 8px',
                             borderRadius: '6px',
-                            background: 'rgba(15, 23, 42, 0.75)',
-                            color: '#f8fafc',
-                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                            background: '#f8fafc',
+                            color: '#334155',
+                            border: '1px solid #e2e8f0'
                           }}>
                             🎯 {eq.labelMeta}
                           </span>
@@ -852,9 +973,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                             fontWeight: '700',
                             padding: '3px 8px',
                             borderRadius: '6px',
-                            background: 'rgba(15, 23, 42, 0.75)',
+                            background: eq.accentBg,
                             color: eq.color,
-                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                            border: `1px solid ${eq.border}`
                           }}>
                             ⏱️ {eq.idealFijo ? 'Ideal: 100%' : 'Ideal Mensual'}
                           </span>
@@ -886,7 +1007,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 3. PANTALLA DE FILTROS (THUMB-ZONE OPTIMIZED + CUPERTINO FLOW) */}
+        {/* 3. PANTALLA DE FILTROS EN TONO CLARO                            */}
         {/* ============================================================== */}
         {screen === 'seleccion' && (
           <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -896,16 +1017,16 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               alignItems: 'center',
               justifyContent: 'space-between',
               paddingBottom: '12px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              borderBottom: '1px solid #e2e8f0',
               marginBottom: '14px'
             }}>
               <button
                 onClick={() => setScreen('equipos')}
                 className="touch-press"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#f8fafc',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  color: '#0f172a',
                   borderRadius: '10px',
                   padding: '6px 12px',
                   fontSize: '12px',
@@ -913,7 +1034,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px'
+                  gap: '5px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                 }}
               >
                 <span>←</span>
@@ -927,7 +1049,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 gap: '6px',
                 padding: '5px 12px',
                 borderRadius: '9999px',
-                background: equipoConfig.grad,
+                background: equipoConfig.accentBg,
                 border: `1px solid ${equipoConfig.border}`,
                 color: equipoConfig.color,
                 fontSize: '12px',
@@ -942,9 +1064,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 onClick={handleCerrarSesion}
                 className="touch-press"
                 style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#f87171',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#dc2626',
                   borderRadius: '10px',
                   padding: '6px 10px',
                   fontSize: '11.5px',
@@ -959,14 +1081,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             {/* Subtítulo de contexto con conteo dinámico */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '900', margin: 0, color: '#0f172a', letterSpacing: '-0.02em' }}>
                   Filtros de Búsqueda
                 </h2>
                 <span style={{
                   fontSize: '11px',
                   fontWeight: '700',
                   color: equipoConfig.color,
-                  background: 'rgba(15, 23, 42, 0.6)',
+                  background: equipoConfig.accentBg,
                   padding: '3px 8px',
                   borderRadius: '6px',
                   border: `1px solid ${equipoConfig.border}`
@@ -974,18 +1096,18 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   {dependenciasDelEquipo.length} Órganos
                 </span>
               </div>
-              <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>
+              <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
                 Seleccione distrito, sede y el juzgado a evaluar:
               </p>
             </div>
 
-            {/* SECCIÓN 1: DISTRITO JUDICIAL (CARRUSEL HORIZONTAL TIPO CHIP APPLE) */}
+            {/* SECCIÓN 1: DISTRITO JUDICIAL (CHIPS HORIZONTALES) */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
+                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#334155', letterSpacing: '0.04em' }}>
                   📍 1. DISTRITO JUDICIAL
                 </label>
-                <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
+                <span style={{ fontSize: '11.5px', color: '#0284c7', fontWeight: '800' }}>
                   {distritoEfectivo}
                 </span>
               </div>
@@ -1011,11 +1133,11 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         flex: '0 0 auto',
                         padding: '9px 14px',
                         borderRadius: '12px',
-                        border: isSel ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                        border: isSel ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
                         background: isSel
-                          ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.95) 0%, rgba(37, 99, 235, 0.9) 100%)'
-                          : 'rgba(30, 41, 59, 0.65)',
-                        color: '#ffffff',
+                          ? 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)'
+                          : '#ffffff',
+                        color: isSel ? '#ffffff' : '#334155',
                         fontSize: '12.5px',
                         fontWeight: isSel ? '800' : '600',
                         cursor: 'pointer',
@@ -1023,8 +1145,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         alignItems: 'center',
                         gap: '6px',
                         boxShadow: isSel
-                          ? '0 4px 14px rgba(2, 132, 199, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35)'
-                          : 'none',
+                          ? '0 4px 14px rgba(2, 132, 199, 0.35)'
+                          : '0 1px 2px rgba(0,0,0,0.04)',
                         outline: 'none',
                         whiteSpace: 'nowrap'
                       }}
@@ -1035,8 +1157,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         fontWeight: '800',
                         padding: '1px 5px',
                         borderRadius: '9999px',
-                        background: isSel ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)',
-                        color: isSel ? '#ffffff' : '#94a3b8'
+                        background: isSel ? 'rgba(255, 255, 255, 0.25)' : '#f1f5f9',
+                        color: isSel ? '#ffffff' : '#64748b'
                       }}>
                         {count}
                       </span>
@@ -1049,10 +1171,10 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             {/* SECCIÓN 2: SEDE JUDICIAL */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
+                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#334155', letterSpacing: '0.04em' }}>
                   🏢 2. SEDE JUDICIAL
                 </label>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>
                   {sedesDisponibles.length} {sedesDisponibles.length === 1 ? 'sede disponible' : 'sedes disponibles'}
                 </span>
               </div>
@@ -1078,18 +1200,18 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         flex: '0 0 auto',
                         padding: '8px 13px',
                         borderRadius: '10px',
-                        border: isSel ? '1.5px solid #0284c7' : '1px solid rgba(255, 255, 255, 0.1)',
+                        border: isSel ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
                         background: isSel
-                          ? 'rgba(2, 132, 199, 0.35)'
-                          : 'rgba(15, 23, 42, 0.7)',
-                        color: isSel ? '#38bdf8' : '#cbd5e1',
+                          ? '#e0f2fe'
+                          : '#ffffff',
+                        color: isSel ? '#0369a1' : '#475569',
                         fontSize: '12px',
                         fontWeight: isSel ? '800' : '600',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        boxShadow: isSel ? '0 2px 10px rgba(2, 132, 199, 0.25)' : 'none',
+                        boxShadow: isSel ? '0 2px 8px rgba(2, 132, 199, 0.15)' : 'none',
                         outline: 'none',
                         whiteSpace: 'nowrap'
                       }}
@@ -1098,7 +1220,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       <span>{sede}</span>
                       <span style={{
                         fontSize: '9.5px',
-                        color: isSel ? '#38bdf8' : '#64748b',
+                        color: isSel ? '#0284c7' : '#94a3b8',
                         fontWeight: '700'
                       }}>
                         ({count})
@@ -1112,15 +1234,15 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             {/* SECCIÓN 3: ÓRGANO JURISDICCIONAL */}
             <div style={{ marginBottom: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
+                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#334155', letterSpacing: '0.04em' }}>
                   ⚖️ 3. ÓRGANO JURISDICCIONAL
                 </label>
-                <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
+                <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: '700' }}>
                   {dependenciasFiltradas.length} encontrados
                 </span>
               </div>
 
-              {/* Cápsula de búsqueda moderna */}
+              {/* Cápsula de búsqueda moderna en blanco */}
               <div style={{
                 position: 'relative',
                 display: 'flex',
@@ -1144,13 +1266,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   style={{
                     width: '100%',
                     padding: '10px 36px 10px 36px',
-                    background: 'rgba(15, 23, 42, 0.85)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
                     borderRadius: '12px',
-                    color: '#ffffff',
+                    color: '#0f172a',
                     fontSize: '12.5px',
                     outline: 'none',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
                   }}
                 />
                 {searchFilter && (
@@ -1159,7 +1282,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     style={{
                       position: 'absolute',
                       right: '10px',
-                      background: 'rgba(255, 255, 255, 0.1)',
+                      background: '#e2e8f0',
                       border: 'none',
                       borderRadius: '50%',
                       width: '20px',
@@ -1167,7 +1290,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#cbd5e1',
+                      color: '#475569',
                       fontSize: '11px',
                       cursor: 'pointer'
                     }}
@@ -1194,10 +1317,10 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   <div style={{
                     padding: '24px 12px',
                     textAlign: 'center',
-                    background: 'rgba(15, 23, 42, 0.5)',
+                    background: '#ffffff',
                     borderRadius: '12px',
-                    border: '1px dashed rgba(255, 255, 255, 0.1)',
-                    color: '#94a3b8',
+                    border: '1px dashed #cbd5e1',
+                    color: '#64748b',
                     fontSize: '12px'
                   }}>
                     No se encontraron órganos con ese filtro.
@@ -1212,17 +1335,17 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         className="touch-press"
                         style={{
                           background: isSel
-                            ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.28) 0%, rgba(15, 23, 42, 0.85) 100%)'
-                            : 'rgba(15, 23, 42, 0.7)',
+                            ? '#f0f9ff'
+                            : '#ffffff',
                           border: isSel
-                            ? `1.5px solid ${equipoConfig.border || '#38bdf8'}`
-                            : '1px solid rgba(255, 255, 255, 0.08)',
-                          borderRadius: '12px',
-                          padding: '11px 13px',
+                            ? '1.5px solid #0284c7'
+                            : '1px solid #e2e8f0',
+                          borderRadius: '14px',
+                          padding: '12px 14px',
                           cursor: 'pointer',
                           boxShadow: isSel
-                            ? '0 4px 14px rgba(2, 132, 199, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                            : 'none'
+                            ? '0 4px 14px rgba(2, 132, 199, 0.15)'
+                            : '0 1px 3px rgba(0,0,0,0.02)'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -1230,18 +1353,18 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                             <span style={{
                               fontSize: '10px',
                               fontWeight: '800',
-                              color: isSel ? '#38bdf8' : '#94a3b8',
-                              background: 'rgba(15, 23, 42, 0.8)',
+                              color: isSel ? '#0284c7' : '#64748b',
+                              background: '#f1f5f9',
                               padding: '2px 6px',
                               borderRadius: '4px',
-                              border: '1px solid rgba(255, 255, 255, 0.08)'
+                              border: '1px solid #e2e8f0'
                             }}>
                               #{dep.n_dependencia}
                             </span>
                             <span style={{
-                              fontSize: '10px',
+                              fontSize: '10.5px',
                               fontWeight: '700',
-                              color: '#cbd5e1',
+                              color: '#475569',
                               textTransform: 'uppercase'
                             }}>
                               {dep.especialidad || dep.categoria || 'Judicial'}
@@ -1252,11 +1375,11 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                             <span style={{
                               fontSize: '10px',
                               fontWeight: '800',
-                              color: '#34d399',
-                              background: 'rgba(16, 185, 129, 0.15)',
+                              color: '#047857',
+                              background: '#d1fae5',
                               padding: '2px 6px',
                               borderRadius: '4px',
-                              border: '1px solid rgba(16, 185, 129, 0.3)'
+                              border: '1px solid #a7f3d0'
                             }}>
                               ✓ Seleccionado
                             </span>
@@ -1264,9 +1387,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         </div>
 
                         <div style={{
-                          fontSize: '13px',
+                          fontSize: '13.5px',
                           fontWeight: '800',
-                          color: '#ffffff',
+                          color: '#0f172a',
                           lineHeight: '1.35',
                           marginBottom: '4px'
                         }}>
@@ -1277,8 +1400,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                           display: 'flex',
                           alignItems: 'center',
                           gap: '10px',
-                          fontSize: '10.5px',
-                          color: '#94a3b8'
+                          fontSize: '11px',
+                          color: '#64748b'
                         }}>
                           <span>🏢 Sede: {dep.sede}</span>
                           <span>•</span>
@@ -1294,10 +1417,10 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             {/* SECCIÓN 4: MES DE EVALUACIÓN (CALENDARIO DE CINTA CON CANDADOS DINÁMICOS) */}
             <div style={{ marginBottom: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#cbd5e1', letterSpacing: '0.04em' }}>
+                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#334155', letterSpacing: '0.04em' }}>
                   📅 4. MES DE EVALUACIÓN ({selectedAnio})
                 </label>
-                <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
+                <span style={{ fontSize: '11.5px', color: '#0284c7', fontWeight: '800' }}>
                   {mesesCalendario.find(m => m.num === selectedMes)?.nombre || 'Octubre'}
                 </span>
               </div>
@@ -1324,16 +1447,16 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         padding: '9px 13px',
                         borderRadius: '11px',
                         border: isSel
-                          ? '1.5px solid #38bdf8'
+                          ? '1.5px solid #0284c7'
                           : m.locked
-                            ? '1px dashed rgba(255, 255, 255, 0.08)'
-                            : '1px solid rgba(255, 255, 255, 0.1)',
+                            ? '1px dashed #cbd5e1'
+                            : '1px solid #cbd5e1',
                         background: isSel
-                          ? 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)'
+                          ? 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)'
                           : m.locked
-                            ? 'rgba(15, 23, 42, 0.4)'
-                            : 'rgba(30, 41, 59, 0.65)',
-                        color: isSel ? '#ffffff' : m.locked ? '#64748b' : '#cbd5e1',
+                            ? '#f1f5f9'
+                            : '#ffffff',
+                        color: isSel ? '#ffffff' : m.locked ? '#94a3b8' : '#334155',
                         fontSize: '11.5px',
                         fontWeight: isSel ? '800' : '600',
                         cursor: m.locked ? 'not-allowed' : 'pointer',
@@ -1341,10 +1464,10 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         alignItems: 'center',
                         gap: '4px',
                         boxShadow: isSel
-                          ? '0 4px 12px rgba(2, 132, 199, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+                          ? '0 4px 12px rgba(2, 132, 199, 0.35)'
                           : 'none',
                         outline: 'none',
-                        opacity: m.locked ? 0.6 : 1
+                        opacity: m.locked ? 0.65 : 1
                       }}
                     >
                       <span>{m.abrev}</span>
@@ -1362,7 +1485,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               position: 'sticky',
               bottom: 0,
               zIndex: 30,
-              background: 'linear-gradient(to top, #080d1a 85%, rgba(8, 13, 26, 0) 100%)',
+              background: 'linear-gradient(to top, #f8fafc 85%, rgba(248, 250, 252, 0) 100%)',
               paddingBottom: '2px'
             }}>
               <button
@@ -1375,8 +1498,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   borderRadius: '18px',
                   border: 'none',
                   background: dependenciaActual
-                    ? 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)'
-                    : '#334155',
+                    ? 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)'
+                    : '#cbd5e1',
                   color: '#ffffff',
                   fontSize: '15.5px',
                   fontWeight: '800',
@@ -1387,7 +1510,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   justifyContent: 'center',
                   gap: '8px',
                   boxShadow: dependenciaActual
-                    ? '0 12px 28px -6px rgba(2, 132, 199, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35)'
+                    ? '0 10px 24px -4px rgba(2, 132, 199, 0.45)'
                     : 'none',
                   outline: 'none'
                 }}
@@ -1400,26 +1523,27 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* 4. PANTALLA DE KPIS Y RESULTADOS (ADAPTADA POR EQUIPO TÉCNICO) */}
+        {/* 4. PANTALLA DE KPIS Y RESULTADOS EN TONO CLARO                  */}
         {/* ============================================================== */}
         {screen === 'kpis' && (
           <div className="animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-            {/* Alerta de datos no disponibles */}
+            {/* Alerta si faltan datos */}
             {(!dependenciaActual || !kpisActuales) ? (
               <div style={{
-                background: 'rgba(15, 23, 42, 0.8)',
+                background: '#ffffff',
                 borderRadius: '18px',
                 padding: '24px',
                 textAlign: 'center',
                 margin: 'auto 0',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.05)'
               }}>
                 <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚠️</div>
-                <h3 style={{ fontSize: '16px', color: '#ffffff', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '16px', color: '#0f172a', marginBottom: '8px' }}>
                   No se encontraron indicadores
                 </h3>
-                <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '20px' }}>
+                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
                   No se pudieron cargar los datos del mes seleccionado para este órgano judicial.
                 </p>
                 <button
@@ -1446,16 +1570,16 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   paddingBottom: '12px',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderBottom: '1px solid #e2e8f0',
                   marginBottom: '12px'
                 }}>
                   <button
                     onClick={() => setScreen('seleccion')}
                     className="touch-press"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#f8fafc',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      color: '#0f172a',
                       borderRadius: '10px',
                       padding: '6px 12px',
                       fontSize: '12px',
@@ -1463,7 +1587,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px'
+                      gap: '5px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
                     }}
                   >
                     <span>←</span>
@@ -1475,9 +1600,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       onClick={handleCopiarResumen}
                       className="touch-press"
                       style={{
-                        background: 'rgba(56, 189, 248, 0.15)',
-                        border: '1px solid rgba(56, 189, 248, 0.3)',
-                        color: '#38bdf8',
+                        background: '#e0f2fe',
+                        border: '1px solid #bae6fd',
+                        color: '#0369a1',
                         borderRadius: '10px',
                         padding: '6px 10px',
                         fontSize: '11.5px',
@@ -1496,9 +1621,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       onClick={handleCerrarSesion}
                       className="touch-press"
                       style={{
-                        background: 'rgba(239, 68, 68, 0.12)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        color: '#f87171',
+                        background: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        color: '#dc2626',
                         borderRadius: '10px',
                         padding: '6px 10px',
                         fontSize: '11.5px',
@@ -1517,18 +1642,18 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
                 {/* SELECTOR RÁPIDO DE MESES DIRECTO EN LA PANTALLA DE KPIS */}
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '14px',
-                  padding: '9px 12px',
+                  padding: '10px 12px',
                   marginBottom: '12px',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
+                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.04em' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', letterSpacing: '0.04em' }}>
                       CAMBIO RÁPIDO DE MES ({selectedAnio})
                     </span>
-                    <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '800' }}>
+                    <span style={{ fontSize: '11.5px', color: '#0284c7', fontWeight: '800' }}>
                       {kpisActuales.nombre_mes}
                     </span>
                   </div>
@@ -1553,14 +1678,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                             flex: '0 0 auto',
                             padding: '6px 11px',
                             borderRadius: '9px',
-                            border: isSel ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                            background: isSel ? '#0284c7' : m.locked ? 'rgba(15, 23, 42, 0.4)' : 'rgba(30, 41, 59, 0.7)',
-                            color: isSel ? '#ffffff' : m.locked ? '#64748b' : '#cbd5e1',
+                            border: isSel ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                            background: isSel ? '#0284c7' : m.locked ? '#f1f5f9' : '#ffffff',
+                            color: isSel ? '#ffffff' : m.locked ? '#94a3b8' : '#334155',
                             fontSize: '11px',
                             fontWeight: isSel ? '800' : '600',
                             cursor: m.locked ? 'not-allowed' : 'pointer',
-                            opacity: m.locked ? 0.6 : 1,
-                            boxShadow: isSel ? '0 2px 8px rgba(2, 132, 199, 0.4)' : 'none'
+                            opacity: m.locked ? 0.65 : 1,
+                            boxShadow: isSel ? '0 2px 8px rgba(2, 132, 199, 0.3)' : 'none'
                           }}
                         >
                           {m.abrev} {m.locked ? '🔒' : ''}
@@ -1572,13 +1697,12 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
                 {/* Tarjeta Principal de la Dependencia */}
                 <div style={{
-                  background: 'rgba(30, 41, 59, 0.65)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
                   borderRadius: '18px',
                   padding: '16px',
                   marginBottom: '12px',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                  boxShadow: '0 4px 16px rgba(15, 23, 42, 0.05)'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{
@@ -1587,30 +1711,30 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       color: equipoConfig.color,
                       letterSpacing: '0.04em',
                       textTransform: 'uppercase',
-                      background: equipoConfig.grad,
+                      background: equipoConfig.accentBg,
                       padding: '3px 8px',
                       borderRadius: '6px',
                       border: `1px solid ${equipoConfig.border}`
                     }}>
                       {equipoConfig.icon} {equipoConfig.nombre}
                     </span>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>
                       Cód: {dependenciaActual.n_dependencia}
                     </span>
                   </div>
 
-                  <h3 style={{ fontSize: '15.5px', fontWeight: '900', color: '#ffffff', margin: '0 0 8px 0', lineHeight: '1.35' }}>
+                  <h3 style={{ fontSize: '15.5px', fontWeight: '900', color: '#0f172a', margin: '0 0 8px 0', lineHeight: '1.35' }}>
                     {dependenciaActual.dependencia}
                   </h3>
 
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11.5px', color: '#cbd5e1' }}>
-                    <span style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '3px 8px', borderRadius: '6px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11.5px', color: '#475569' }}>
+                    <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                       📍 {dependenciaActual.distrito}
                     </span>
-                    <span style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '3px 8px', borderRadius: '6px' }}>
+                    <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                       🏢 Sede: {dependenciaActual.sede}
                     </span>
-                    <span style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '3px 8px', borderRadius: '6px' }}>
+                    <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                       📅 {kpisActuales.nombre_mes} {selectedAnio}
                     </span>
                   </div>
@@ -1618,23 +1742,23 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
                 {/* INSIGHT CARD DESTACADO */}
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)',
-                  border: '1.5px solid rgba(56, 189, 248, 0.35)',
+                  background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                  border: '1.5px solid #bae6fd',
                   borderRadius: '16px',
                   padding: '12px 14px',
                   marginBottom: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.25)'
+                  boxShadow: '0 2px 10px rgba(2, 132, 199, 0.08)'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '18px' }}>🏛️</span>
                     <div>
-                      <div style={{ fontSize: '11px', fontWeight: '800', color: '#38bdf8', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '800', color: '#0369a1', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
                         {selectedEquipo === 'OPJ' ? 'Meta Estándar R.A. 90-2025' : `${equipoConfig.insightPrefix}`}
                       </div>
-                      <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>
                         {selectedEquipo === 'EJECUCION' ? 'Meta mensual de resoluciones en ejecución' : 'Meta anual de referencia establecida'}
                       </div>
                     </div>
@@ -1642,11 +1766,12 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   <div style={{
                     fontSize: '17px',
                     fontWeight: '900',
-                    color: '#ffffff',
-                    background: 'rgba(2, 132, 199, 0.25)',
+                    color: '#0369a1',
+                    background: '#ffffff',
                     padding: '4px 10px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(56, 189, 248, 0.4)'
+                    border: '1px solid #bae6fd',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
                   }}>
                     {fmtNum(kpisActuales.meta_estandar || dependenciaActual.meta_estandar)}
                   </div>
@@ -1662,41 +1787,42 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
                   {/* 1. Total de Producción con sub-nota del mes seleccionado */}
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1.5px solid rgba(56, 189, 248, 0.35)',
+                    background: '#ffffff',
+                    border: '1.5px solid #0284c7',
                     borderRadius: '16px',
                     padding: '14px 12px',
-                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.15)'
+                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.12)'
                   }}>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginBottom: '4px' }}>
                       TOTAL DE PRODUCCIÓN
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.total_produccion)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#38bdf8', marginTop: '3px', fontWeight: '600' }}>
-                      Mes de {kpisActuales.nombre_mes}: <strong style={{ color: '#ffffff' }}>{fmtNum(kpisActuales.produccion_mes)}</strong>
+                    <div style={{ fontSize: '11px', color: '#0284c7', marginTop: '3px', fontWeight: '700' }}>
+                      Mes de {kpisActuales.nombre_mes}: <strong style={{ color: '#0f172a' }}>{fmtNum(kpisActuales.produccion_mes)}</strong>
                     </div>
                   </div>
 
                   {/* 2. Meta específica según Equipo Técnico */}
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '16px',
-                    padding: '14px 12px'
+                    padding: '14px 12px',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
                   }}>
                     <div style={{ fontSize: '11px', color: equipoConfig.color, fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
                       {equipoConfig.labelMeta}
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {(() => {
                         const val = selectedEquipo === 'OPJ' ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar) : kpisActuales.meta_preliminar;
                         if (!val || val === 0) return '—';
                         return fmtNum(val);
                       })()}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px', lineHeight: '1.3' }}>
+                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', lineHeight: '1.3' }}>
                       {(() => {
                         const val = selectedEquipo === 'OPJ' ? (kpisActuales.meta_sie || kpisActuales.meta_preliminar) : kpisActuales.meta_preliminar;
                         if (!val || val === 0) return 'Pendiente de registrar Meta SIE';
@@ -1707,23 +1833,24 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
                   {/* 3. % de Avance */}
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '16px',
-                    padding: '14px 12px'
+                    padding: '14px 12px',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
                   }}>
-                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
                       {equipoConfig.labelAvance}
                     </div>
                     <div style={{
                       fontSize: '26px',
                       fontWeight: '900',
                       letterSpacing: '-0.02em',
-                      color: (kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '#94a3b8' : (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '#34d399' : '#f59e0b')
+                      color: (kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '#94a3b8' : (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '#059669' : '#d97706')
                     }}>
                       {(kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie)) ? '—' : `${kpisActuales.avance_pct}%`}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
                       {(kpisActuales.avance_pct === null || kpisActuales.avance_pct === undefined || (selectedEquipo === 'OPJ' && !kpisActuales.meta_sie))
                         ? 'Pendiente de Meta SIE'
                         : (kpisActuales.avance_pct >= (equipoConfig.idealFijo || kpisActuales.ideal_mes_pct) ? '✓ Supera avance ideal' : 'Por debajo del ideal')}
@@ -1732,54 +1859,57 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
                   {/* 4. Carga Procesal / Carga Pendiente en Ejecución */}
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '16px',
-                    padding: '14px 12px'
+                    padding: '14px 12px',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
                   }}>
-                    <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '800', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '800', marginBottom: '4px' }}>
                       {selectedEquipo === 'EJECUCION' ? 'CARGA PENDIENTE EN EJECUCIÓN' : 'CARGA PROCESAL DEL MES'}
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.carga_procesal_mes)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
                       {selectedEquipo === 'EJECUCION' ? `Expedientes pendientes (${kpisActuales.nombre_mes})` : `Carga en trámite (${kpisActuales.nombre_mes})`}
                     </div>
                   </div>
 
                   {/* 5. Total de Ingresos (Acumulado hasta el mes seleccionado) */}
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1.5px solid rgba(168, 85, 247, 0.28)',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '16px',
-                    padding: '14px 12px'
+                    padding: '14px 12px',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
                   }}>
-                    <div style={{ fontSize: '11px', color: '#c084fc', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '11px', color: '#7e22ce', fontWeight: '800', marginBottom: '4px', textTransform: 'uppercase' }}>
                       TOTAL DE INGRESOS
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.total_ingresos !== undefined ? kpisActuales.total_ingresos : kpisActuales.ingresos_mes)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px', lineHeight: '1.3' }}>
+                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', lineHeight: '1.3' }}>
                       Hasta {kpisActuales.nombre_mes} ({fmtNum(kpisActuales.ingresos_mes)} en el mes)
                     </div>
                   </div>
 
                   {/* 6. % Ideal del Mes */}
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '16px',
-                    padding: '14px 12px'
+                    padding: '14px 12px',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
                   }}>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginBottom: '4px' }}>
                       % IDEAL DEL MES
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#38bdf8', letterSpacing: '-0.02em' }}>
+                    <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284c7', letterSpacing: '-0.02em' }}>
                       {equipoConfig.idealFijo !== null ? equipoConfig.idealFijo : kpisActuales.ideal_mes_pct}%
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '2px' }}>
+                    <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
                       {equipoConfig.idealFijo !== null ? 'Estándar mensual 100%' : `Referencia a ${kpisActuales.nombre_mes}`}
                     </div>
                   </div>
@@ -1794,10 +1924,10 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.25)'
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
                   }}>
                     <div>
-                      <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: '700' }}>
+                      <div style={{ fontSize: '11px', color: '#475569', fontWeight: '700' }}>
                         NIVEL RESOLUTIVO
                       </div>
                       <div style={{
@@ -1812,18 +1942,19 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                         <span>{nivelConfig.icon}</span>
                         <span>{nivelConfig.label}</span>
                       </div>
-                      <div style={{ fontSize: '11px', color: '#cbd5e1', lineHeight: '1.2' }}>
+                      <div style={{ fontSize: '11px', color: '#475569', lineHeight: '1.2' }}>
                         {nivelConfig.descripcion}
                       </div>
                     </div>
                     <div style={{
                       padding: '8px 14px',
                       borderRadius: '12px',
-                      background: 'rgba(15, 23, 42, 0.65)',
+                      background: '#ffffff',
                       border: `1px solid ${nivelConfig.border}`,
                       color: nivelConfig.text,
                       fontWeight: '900',
-                      fontSize: '13px'
+                      fontSize: '13px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                     }}>
                       Oficial
                     </div>
@@ -1834,39 +1965,39 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
           </div>
         )}
 
-        {/* Modal de Aviso: Módulo en Construcción (Bottom-Sheet / Dialog estilo Apple) */}
+        {/* Modal de Aviso: Módulo en Construcción (Tono Claro) */}
         {modalConstruccion && (
           <div style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.8)',
+            background: 'rgba(15, 23, 42, 0.45)',
             zIndex: 99999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '24px',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)'
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)'
           }}>
             <div className="animate-slide-up" style={{
-              background: '#0c1322',
-              border: '1.5px solid rgba(234, 179, 8, 0.45)',
+              background: '#ffffff',
+              border: '1.5px solid #fde047',
               borderRadius: '24px',
               padding: '26px',
               maxWidth: '360px',
               width: '100%',
               textAlign: 'center',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(234, 179, 8, 0.2)'
+              boxShadow: '0 20px 40px rgba(15, 23, 42, 0.2)'
             }}>
               <div style={{ fontSize: '44px', marginBottom: '10px' }}>🚧</div>
-              <h3 style={{ fontSize: '19px', fontWeight: '900', color: '#ffffff', margin: '0 0 6px 0' }}>
+              <h3 style={{ fontSize: '19px', fontWeight: '900', color: '#0f172a', margin: '0 0 6px 0' }}>
                 Juzgados de Ejecución
               </h3>
               <div style={{
                 display: 'inline-block',
-                background: 'rgba(234, 179, 8, 0.18)',
-                color: '#facc15',
-                border: '1px solid rgba(234, 179, 8, 0.35)',
+                background: '#fef9c3',
+                color: '#854d0e',
+                border: '1px solid #fde047',
                 borderRadius: '8px',
                 padding: '4px 10px',
                 fontSize: '11.5px',
@@ -1875,7 +2006,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               }}>
                 En construcción • Analizando datos
               </div>
-              <p style={{ fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.55', margin: '0 0 22px 0' }}>
+              <p style={{ fontSize: '12.5px', color: '#64748b', lineHeight: '1.55', margin: '0 0 22px 0' }}>
                 Actualmente se están analizando las nuevas directrices e indicadores oficiales que se mostrarán para los Juzgados de Ejecución.
               </p>
               <button
@@ -1885,13 +2016,13 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   width: '100%',
                   padding: '14px',
                   borderRadius: '14px',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)',
                   color: '#ffffff',
                   fontWeight: '800',
                   fontSize: '14px',
                   border: 'none',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 16px rgba(2, 132, 199, 0.4)'
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)'
                 }}
               >
                 Comprendido

@@ -4,10 +4,13 @@
 
 :root {
   --color-primary: #0284c7;
-  --color-primary-glow: rgba(56, 189, 248, 0.35);
-  --color-surface-bg: #070c18;
-  --color-surface-card: rgba(15, 23, 42, 0.72);
-  --color-surface-border: rgba(255, 255, 255, 0.08);
+  --color-primary-dark: #0369a1;
+  --color-primary-glow: rgba(2, 132, 199, 0.2);
+  --color-surface-bg: #f8fafc;
+  --color-surface-card: #ffffff;
+  --color-surface-border: #e2e8f0;
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
 }
 
 html, body, #root {
@@ -16,8 +19,8 @@ html, body, #root {
   width: 100%;
   min-height: 100%;
   min-height: 100dvh;
-  background-color: #070c18;
-  color: #f8fafc;
+  background-color: #f8fafc;
+  color: #0f172a;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -26,9 +29,10 @@ html, body, #root {
 body {
   overflow-x: hidden;
   overscroll-behavior-y: none;
-  background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(14, 165, 233, 0.15), transparent),
-    radial-gradient(ellipse 60% 40% at 50% 120%, rgba(30, 58, 138, 0.2), transparent);
+  background: 
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(186, 230, 253, 0.5), transparent),
+    radial-gradient(ellipse 70% 50% at 50% 110%, rgba(224, 231, 255, 0.4), transparent),
+    #f8fafc;
 }
 
 button {
@@ -61,18 +65,16 @@ select, input {
   opacity: 0.92;
 }
 
-/* Glassmorphism y vibrancia Cupertino */
+/* Glassmorphism en modo claro */
 .glass-surface {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 .glass-card {
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
 }
 
 @keyframes fadeIn {
@@ -90,10 +92,58 @@ select, input {
   50% { opacity: 0.85; transform: scale(1.02); }
 }
 
+/* Animación de Rebotando y Girando en 3D para el Logo PJ */
+@keyframes bounceAndSpin {
+  0% {
+    transform: perspective(900px) translateY(50px) scale(0.4) rotateY(0deg) rotateZ(-12deg);
+    opacity: 0;
+  }
+  25% {
+    transform: perspective(900px) translateY(-32px) scale(1.18) rotateY(270deg) rotateZ(6deg);
+    opacity: 1;
+  }
+  50% {
+    transform: perspective(900px) translateY(14px) scale(0.94) rotateY(540deg) rotateZ(-3deg);
+  }
+  75% {
+    transform: perspective(900px) translateY(-10px) scale(1.06) rotateY(680deg) rotateZ(1deg);
+  }
+  90% {
+    transform: perspective(900px) translateY(0) scale(1) rotateY(720deg) rotateZ(0deg);
+  }
+  100% {
+    transform: perspective(900px) translateY(0) scale(1.06) rotateY(720deg) rotateZ(0deg);
+  }
+}
+
+/* Expansión del aro de brillo institucional cuando el logo se muestra de frente */
+@keyframes haloExpand {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  60% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-up {
   animation: slideUp 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.logo-bounce-spin {
+  animation: bounceAndSpin 1.6s cubic-bezier(0.25, 1, 0.35, 1) forwards;
+  transform-style: preserve-3d;
+}
+
+.halo-wave {
+  animation: haloExpand 1.4s ease-out infinite;
 }
