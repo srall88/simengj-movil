@@ -64,20 +64,6 @@ const EQUIPOS_CONFIG = {
     labelAvance: '% de Avance',
     insightPrefix: 'Estándar PPOR 1002',
     idealFijo: null
-  },
-  EJECUCION: {
-    id: 'EJECUCION',
-    nombre: 'Juzgados de Ejecución',
-    badge: '1 Órgano',
-    icon: '📋',
-    color: '#10b981',
-    grad: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.08) 100%)',
-    border: 'rgba(16, 185, 129, 0.45)',
-    desc: 'Juzgados especializados en Ejecución y Descarga Procesal de Sentencias Laborales.',
-    labelMeta: 'Meta de Ejecución',
-    labelAvance: 'Avance de Meta',
-    insightPrefix: 'Meta Estándar de Ejecución (150/mes)',
-    idealFijo: 100
   }
 };
 
