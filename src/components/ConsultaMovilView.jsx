@@ -153,13 +153,13 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     } catch (_) {}
   }, []);
 
-  // Transición animada interactiva con el logo pj.png rebotando y girando
+  // Transición animada interactiva con ensamblaje institucional y rebote elástico (sin giros)
   const handleIngresarSistema = () => {
     setScreen('animacion_intro');
-    // Tras 1.65 segundos de giro 3D y rebote, cuando el logo queda de frente, entra a las tarjetas
+    // Tras 1.75 segundos de ensamblaje con rebote elástico, entra a las tarjetas
     setTimeout(() => {
       setScreen('equipos');
-    }, 1650);
+    }, 1750);
   };
 
   // 1. Filtrar las dependencias exclusivas del Equipo Técnico seleccionado
@@ -528,13 +528,14 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
           }}>
             {/* Cabecera institucional con Logo Oficial pj.png */}
             <div style={{ textAlign: 'center', marginTop: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+                {/* Escudo Oficial Poder Judicial */}
                 <div style={{
-                  padding: '12px',
-                  borderRadius: '28px',
+                  padding: '10px 14px',
+                  borderRadius: '24px',
                   background: '#ffffff',
-                  boxShadow: '0 14px 32px rgba(2, 132, 199, 0.2), 0 2px 8px rgba(0, 0, 0, 0.05)',
-                  border: '2px solid #bae6fd',
+                  boxShadow: '0 12px 28px rgba(139, 28, 29, 0.15), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                  border: '2px solid rgba(139, 28, 29, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -543,8 +544,34 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     src="/pj.png"
                     alt="Logo Poder Judicial del Perú"
                     style={{
-                      width: '78px',
-                      height: '78px',
+                      width: '70px',
+                      height: '52px',
+                      objectFit: 'contain',
+                      display: 'block'
+                    }}
+                  />
+                </div>
+
+                {/* Divisor vertical */}
+                <div style={{ width: '1px', height: '44px', background: '#e2e8f0' }} />
+
+                {/* Nuevo Logo Oficial SIMENGJ */}
+                <div style={{
+                  padding: '8px 12px',
+                  borderRadius: '24px',
+                  background: '#ffffff',
+                  boxShadow: '0 12px 28px rgba(88, 89, 91, 0.15), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                  border: '2px solid rgba(88, 89, 91, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <img
+                    src="/Logo.jpg"
+                    alt="Nuevo Logo SIMENGJ"
+                    style={{
+                      width: '58px',
+                      height: '52px',
                       objectFit: 'contain',
                       display: 'block'
                     }}
@@ -552,20 +579,20 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 </div>
               </div>
 
-              {/* Badge Institucional */}
+              {/* Badge Institucional con Pantone Oficial (#8B1C1D y #58595B) */}
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
                 padding: '6px 14px',
                 borderRadius: '9999px',
-                background: '#e0f2fe',
-                border: '1px solid #bae6fd',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
                 marginBottom: '14px'
               }}>
                 <span style={{ fontSize: '13px' }}>⚖️</span>
-                <span style={{ fontSize: '11px', fontWeight: '800', color: '#0369a1', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  Poder Judicial del Perú
+                <span style={{ fontSize: '11px', fontWeight: '800', color: '#8B1C1D', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  Poder Judicial del Perú • CSJLE
                 </span>
               </div>
 
@@ -576,13 +603,13 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 letterSpacing: '-0.03em',
                 color: '#0f172a'
               }}>
-                SIMENGJ
+                <span style={{ color: '#8B1C1D' }}>SIMEN</span><span style={{ color: '#58595B' }}>GJ</span>
               </h1>
 
               <div style={{
                 fontSize: '13px',
                 fontWeight: '800',
-                color: '#0284c7',
+                color: '#58595B',
                 marginBottom: '12px',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase'
@@ -666,7 +693,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   padding: '16px',
                   borderRadius: '18px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)',
+                  background: 'linear-gradient(135deg, #8B1C1D 0%, #a82425 50%, #58595B 100%)',
                   color: '#ffffff',
                   fontSize: '16px',
                   fontWeight: '800',
@@ -676,7 +703,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: '0 10px 24px -4px rgba(2, 132, 199, 0.45)',
+                  boxShadow: '0 10px 24px -4px rgba(139, 28, 29, 0.45)',
                   outline: 'none'
                 }}
               >
@@ -719,38 +746,100 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             justifyContent: 'center',
             padding: '24px',
             textAlign: 'center',
-            position: 'relative',
-            perspective: '1000px'
+            position: 'relative'
           }}>
-            {/* Aro de brillo y vibración institucional */}
+            {/* Contenedor de Ensamblaje Institucional */}
             <div style={{
               position: 'relative',
-              width: '140px',
-              height: '140px',
+              width: '240px',
+              height: '180px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '24px'
+              marginBottom: '26px'
             }}>
-              <div className="halo-wave" style={{
+              {/* Onda de choque institucional expansiva */}
+              <div className="assembly-shockwave" style={{
                 position: 'absolute',
                 width: '100%',
                 height: '100%',
                 borderRadius: '36px',
-                background: 'rgba(2, 132, 199, 0.25)',
-                filter: 'blur(10px)',
+                background: 'radial-gradient(circle, rgba(139, 28, 29, 0.28) 0%, rgba(88, 89, 91, 0.14) 55%, transparent 75%)',
+                filter: 'blur(8px)',
                 zIndex: 0
               }} />
 
-              {/* Contenedor del Logo con animación 3D de Rebote y Giro */}
-              <div className="logo-bounce-spin" style={{
+              {/* Pieza 1: Bloque Superior Izquierdo (Rojo Pantone #8B1C1D) */}
+              <div className="piece-assemble-tl" style={{
+                position: 'absolute',
+                top: '-10px',
+                left: '-10px',
+                width: '38px',
+                height: '38px',
+                background: '#8B1C1D',
+                borderRadius: '14px 4px 10px 4px',
+                boxShadow: '0 6px 14px rgba(139, 28, 29, 0.45)',
+                zIndex: 3,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#ffffff', opacity: 0.85 }} />
+              </div>
+
+              {/* Pieza 2: Bloque Inferior Derecho (Rojo Pantone #8B1C1D) */}
+              <div className="piece-assemble-br" style={{
+                position: 'absolute',
+                bottom: '-10px',
+                right: '-10px',
+                width: '38px',
+                height: '38px',
+                background: '#8B1C1D',
+                borderRadius: '4px 10px 4px 14px',
+                boxShadow: '0 6px 14px rgba(139, 28, 29, 0.45)',
+                zIndex: 3,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#ffffff', opacity: 0.85 }} />
+              </div>
+
+              {/* Pieza 3: Bloque Superior Derecho (Gris Pantone #58595B) */}
+              <div className="piece-assemble-tr" style={{
+                position: 'absolute',
+                top: '-6px',
+                right: '-6px',
+                width: '28px',
+                height: '28px',
+                background: '#58595B',
+                borderRadius: '4px 12px 4px 8px',
+                boxShadow: '0 4px 12px rgba(88, 89, 91, 0.35)',
+                zIndex: 3
+              }} />
+
+              {/* Pieza 4: Bloque Inferior Izquierdo (Gris Pantone #58595B) */}
+              <div className="piece-assemble-bl" style={{
+                position: 'absolute',
+                bottom: '-6px',
+                left: '-6px',
+                width: '28px',
+                height: '28px',
+                background: '#58595B',
+                borderRadius: '8px 4px 12px 4px',
+                boxShadow: '0 4px 12px rgba(88, 89, 91, 0.35)',
+                zIndex: 3
+              }} />
+
+              {/* Escudo Oficial PJ Central Engrandecido con Rebote Elástico */}
+              <div className="logo-assemble-bounce" style={{
                 position: 'relative',
                 zIndex: 2,
-                padding: '16px',
-                borderRadius: '32px',
+                padding: '16px 20px',
+                borderRadius: '28px',
                 background: '#ffffff',
-                boxShadow: '0 20px 40px rgba(2, 132, 199, 0.3), 0 8px 16px rgba(0, 0, 0, 0.08)',
-                border: '2px solid #bae6fd',
+                boxShadow: '0 20px 48px rgba(139, 28, 29, 0.22), 0 8px 20px rgba(0, 0, 0, 0.08)',
+                border: '2.5px solid #8B1C1D',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -759,8 +848,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   src="/pj.png"
                   alt="Logo Poder Judicial"
                   style={{
-                    width: '90px',
-                    height: '90px',
+                    width: '155px',
+                    height: '105px',
                     objectFit: 'contain',
                     display: 'block'
                   }}
@@ -768,39 +857,40 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               </div>
             </div>
 
-            <div className="animate-slide-up" style={{ animationDelay: '150ms' }}>
+            <div className="animate-slide-up" style={{ animationDelay: '180ms' }}>
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '4px 12px',
+                padding: '5px 14px',
                 borderRadius: '9999px',
-                background: '#e0f2fe',
-                color: '#0284c7',
+                background: '#fef2f2',
+                color: '#8B1C1D',
+                border: '1px solid #fecaca',
                 fontSize: '11px',
                 fontWeight: '800',
                 letterSpacing: '0.04em',
-                marginBottom: '8px'
+                marginBottom: '10px'
               }}>
-                ⚖️ CORTE SUPERIOR DE JUSTICIA DE LIMA ESTE
+                ⚡ ENSAMBLANDO SISTEMA SIMENGJ
               </div>
 
               <h2 style={{
-                fontSize: '22px',
+                fontSize: '23px',
                 fontWeight: '900',
                 color: '#0f172a',
-                margin: '0 0 4px 0',
+                margin: '0 0 6px 0',
                 letterSpacing: '-0.02em'
               }}>
-                Cargando Módulos Oficiales...
+                <span style={{ color: '#8B1C1D' }}>SIMEN</span><span style={{ color: '#58595B' }}>GJ</span> • CSJLE
               </h2>
 
               <p style={{
-                fontSize: '12.5px',
+                fontSize: '13px',
                 color: '#64748b',
                 margin: 0
               }}>
-                Sincronizando los 5 Equipos Técnicos
+                Sincronizando los 5 Equipos Técnicos Jurisdiccionales
               </p>
             </div>
 
@@ -838,19 +928,44 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               borderBottom: '1px solid #e2e8f0',
               marginBottom: '16px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                <img
-                  src="/pj.png"
-                  alt="Logo CSJLE"
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    objectFit: 'contain'
-                  }}
-                />
-                <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
-                  SIMENGJ • CSJLE
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#ffffff',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #8B1C1D',
+                  boxShadow: '0 2px 6px rgba(139, 28, 29, 0.1)'
+                }}>
+                  <img
+                    src="/Logo.jpg"
+                    alt="Logo SIMENGJ"
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      objectFit: 'contain'
+                    }}
+                  />
+                  <img
+                    src="/pj.png"
+                    alt="Logo CSJLE"
+                    style={{
+                      width: '28px',
+                      height: '22px',
+                      objectFit: 'contain'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '14px', fontWeight: '900', color: '#0f172a', lineHeight: 1.1 }}>
+                    <span style={{ color: '#8B1C1D' }}>SIMEN</span><span style={{ color: '#58595B' }}>GJ</span>
+                  </span>
+                  <span style={{ fontSize: '9.5px', fontWeight: '800', color: '#8B1C1D', letterSpacing: '0.04em' }}>
+                    CSJLE • PODER JUDICIAL
+                  </span>
+                </div>
               </div>
 
               <button
