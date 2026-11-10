@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import staticConsultasData from '../data/consultasData.json';
 
 // Formateador numérico institucional seguro
@@ -52,8 +52,8 @@ const EQUIPOS_CONFIG = {
     border: '#fde68a',
     accentBg: '#fef3c7',
     desc: 'Unidades de Flagrancia Delictiva (JIP y JUP Flagrancia).',
-    labelMeta: 'Meta Preliminar (Meta)',
-    labelAvance: '% de Avance (Avance de meta)',
+    labelMeta: 'Ajuste de Meta',
+    labelAvance: '% de Avance',
     insightPrefix: 'Meta Estándar Flagrancia',
     idealFijo: 100
   },
@@ -155,14 +155,22 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
 
   // Transición animada interactiva con el GIF Oficial del Logo PJ
   const [animKey, setAnimKey] = useState(Date.now());
+  const introTimerRef = useRef(null);
 
   const handleIngresarSistema = () => {
     setAnimKey(Date.now());
     setScreen('animacion_intro');
-    // Duración de la animación: avanza automáticamente a los 4.5s o al tocar el botón
-    setTimeout(() => {
+    if (introTimerRef.current) clearTimeout(introTimerRef.current);
+    // El GIF oficial dura exactamente 8.0s (8000 ms, 128 cuadros oficiales)
+    // Sincronización exacta: la barra recorre 0% a 100% en 8.0s y tras terminar da paso a los módulos
+    introTimerRef.current = setTimeout(() => {
       setScreen(prev => (prev === 'animacion_intro' ? 'equipos' : prev));
-    }, 4500);
+    }, 8150);
+  };
+
+  const handleSaltarIntro = () => {
+    if (introTimerRef.current) clearTimeout(introTimerRef.current);
+    setScreen('equipos');
   };
 
   // 1. Filtrar las dependencias exclusivas del Equipo Técnico seleccionado
@@ -420,6 +428,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
 
   // Cerrar sesión
   const handleCerrarSesion = () => {
+    if (introTimerRef.current) clearTimeout(introTimerRef.current);
     setScreen('bienvenida');
     setSearchFilter('');
     setActiveModal(null);
@@ -795,7 +804,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               />
             </div>
 
-            {/* Barra de progreso de carga hacia los módulos */}
+            {/* Barra de progreso de carga hacia los módulos sincronizada con el GIF (8s) */}
             <div style={{
               width: '100%',
               maxWidth: '320px',
@@ -810,7 +819,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 height: '100%',
                 background: 'linear-gradient(90deg, #8B1C1D, #c53030)',
                 borderRadius: '9999px',
-                animation: 'introProgress 4.3s linear forwards'
+                animation: 'introProgress 8s linear forwards'
               }} />
             </div>
 
@@ -853,7 +862,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
 
             {/* Botón para omitir intro y continuar directamente */}
             <button
-              onClick={() => setScreen('equipos')}
+              onClick={handleSaltarIntro}
               className="touch-press"
               style={{
                 marginTop: '20px',
