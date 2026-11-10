@@ -161,11 +161,11 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     setAnimKey(Date.now());
     setScreen('animacion_intro');
     if (introTimerRef.current) clearTimeout(introTimerRef.current);
-    // El GIF oficial dura exactamente 8.0s (8000 ms, 128 cuadros oficiales)
-    // Sincronización exacta: la barra recorre 0% a 100% en 8.0s y tras terminar da paso a los módulos
+    // El GIF oficial dura 8.0s (acaba primero) y luego la barra termina en 2.0s más (10s en total)
+    // Tras completarse los 10 segundos, ingresa automáticamente a los módulos
     introTimerRef.current = setTimeout(() => {
       setScreen(prev => (prev === 'animacion_intro' ? 'equipos' : prev));
-    }, 8150);
+    }, 10100);
   };
 
   const handleSaltarIntro = () => {
@@ -804,7 +804,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               />
             </div>
 
-            {/* Barra de progreso de carga hacia los módulos sincronizada con el GIF (8s) */}
+            {/* Barra de progreso de carga hacia los módulos (10s: 8s GIF + 2s finalización) */}
             <div style={{
               width: '100%',
               maxWidth: '320px',
@@ -819,7 +819,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 height: '100%',
                 background: 'linear-gradient(90deg, #8B1C1D, #c53030)',
                 borderRadius: '9999px',
-                animation: 'introProgress 8s linear forwards'
+                animation: 'introProgress 10s linear forwards'
               }} />
             </div>
 
