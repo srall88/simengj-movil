@@ -341,7 +341,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     const mesKey = String(selectedMes);
     const kpi = dependenciaActual.meses[mesKey] || dependenciaActual.meses[selectedMes];
     if (kpi) return kpi;
-    const mesDefecto = anioActivo === 2026 ? '9' : '1';
+    const mesDefecto = anioActivo === 2026 ? String(maxMesActivo || 10) : '1';
     return dependenciaActual.meses[mesDefecto] || Object.values(dependenciaActual.meses)[0] || null;
   }, [dependenciaActual, selectedMes, anioActivo]);
 
