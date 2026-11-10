@@ -153,13 +153,13 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
     } catch (_) {}
   }, []);
 
-  // Transición animada interactiva con el Video Oficial de Ensamblaje 3D del Logo PJ
+  // Transición animada interactiva con el GIF Oficial del Logo PJ
   const handleIngresarSistema = () => {
     setScreen('animacion_intro');
-    // Duración del video oficial: 8.04 segundos. Si el navegador no dispara onEnded, avanza automáticamente a los 8.1s
+    // Duración de la animación: avanza automáticamente a los 4.5s o al tocar el botón
     setTimeout(() => {
       setScreen(prev => (prev === 'animacion_intro' ? 'equipos' : prev));
-    }, 8100);
+    }, 4500);
   };
 
   // 1. Filtrar las dependencias exclusivas del Equipo Técnico seleccionado
@@ -516,7 +516,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
         )}
 
         {/* ============================================================== */}
-        {/* INTERACCIÓN: TRANSICIÓN OFICIAL CON VIDEO LOGO PJ (3D PUZZLE)  */}
+        {/* INTERACCIÓN: TRANSICIÓN OFICIAL CON GIF LOGO PJ (3D PUZZLE)    */}
         {/* ============================================================== */}
         {screen === 'animacion_intro' && (
           <div style={{
@@ -531,7 +531,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             width: '100%',
             minHeight: '80vh'
           }}>
-            {/* Contenedor del Video con Borde Institucional y Sombra de Cine */}
+            {/* Contenedor del GIF Animado con Borde Institucional y Sombra */}
             <div style={{
               width: '100%',
               maxWidth: '480px',
@@ -546,12 +546,9 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <video
-                src="/video_logo_pj.mp4"
-                autoPlay
-                muted
-                playsInline
-                onEnded={() => setScreen('equipos')}
+              <img
+                src="/Logo PJ GIF.gif"
+                alt="Logo PJ Animado - Poder Judicial"
                 style={{
                   width: '100%',
                   height: '100%',
