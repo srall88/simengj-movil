@@ -154,7 +154,10 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
   }, []);
 
   // Transición animada interactiva con el GIF Oficial del Logo PJ
+  const [animKey, setAnimKey] = useState(Date.now());
+
   const handleIngresarSistema = () => {
+    setAnimKey(Date.now());
     setScreen('animacion_intro');
     // Duración de la animación: avanza automáticamente a los 4.5s o al tocar el botón
     setTimeout(() => {
@@ -526,23 +529,67 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
             justifyContent: 'space-between',
             padding: '24px 8px 12px 8px'
           }}>
-            {/* Cabecera institucional con Logo Oficial y Sello PJ */}
-            <div style={{ textAlign: 'center', marginTop: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            {/* Cabecera institucional con Logo Oficial PJ y Logo SIMENGJ */}
+            <div style={{ textAlign: 'center', marginTop: '10px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                marginBottom: '16px'
+              }}>
+                {/* Logo Oficial Poder Judicial */}
+                <div style={{
+                  padding: '8px',
+                  borderRadius: '22px',
+                  background: '#ffffff',
+                  boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04)',
+                  border: '1.5px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '84px',
+                  height: '84px'
+                }}>
+                  <img
+                    src="/pj.png"
+                    alt="Logo Poder Judicial del Perú"
+                    style={{
+                      width: '66px',
+                      height: '66px',
+                      objectFit: 'contain',
+                      display: 'block'
+                    }}
+                  />
+                </div>
+
+                {/* Separador vertical elegante */}
+                <div style={{
+                  width: '1.5px',
+                  height: '48px',
+                  background: 'linear-gradient(to bottom, transparent, #cbd5e1, transparent)'
+                }} />
+
+                {/* Logo Oficial SIMENGJ CSJLE */}
                 <div style={{
                   padding: '6px',
-                  borderRadius: '24px',
+                  borderRadius: '22px',
                   background: 'linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)',
-                  boxShadow: '0 12px 32px rgba(139, 28, 29, 0.16), 0 2px 8px rgba(0, 0, 0, 0.04)',
-                  border: '1.5px solid rgba(139, 28, 29, 0.25)'
+                  boxShadow: '0 10px 28px rgba(139, 28, 29, 0.16), 0 2px 6px rgba(139, 28, 29, 0.05)',
+                  border: '1.5px solid rgba(139, 28, 29, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '84px',
+                  height: '84px'
                 }}>
                   <img
                     src="/Logo.jpg"
-                    alt="Logo Poder Judicial - CSJLE"
+                    alt="Logo SIMENGJ - CSJLE"
                     style={{
-                      width: '76px',
-                      height: '76px',
-                      borderRadius: '20px',
+                      width: '72px',
+                      height: '72px',
+                      borderRadius: '16px',
                       objectFit: 'cover',
                       display: 'block'
                     }}
@@ -736,7 +783,8 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               justifyContent: 'center'
             }}>
               <img
-                src="/Logo PJ GIF.gif"
+                key={animKey}
+                src={`/Logo PJ GIF.gif?t=${animKey}`}
                 alt="Logo PJ Animado - Poder Judicial"
                 style={{
                   width: '100%',
@@ -747,7 +795,26 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               />
             </div>
 
-            <div className="animate-slide-up" style={{ marginTop: '20px' }}>
+            {/* Barra de progreso de carga hacia los módulos */}
+            <div style={{
+              width: '100%',
+              maxWidth: '320px',
+              height: '4px',
+              background: '#e2e8f0',
+              borderRadius: '9999px',
+              marginTop: '20px',
+              overflow: 'hidden',
+              position: 'relative'
+            }}>
+              <div style={{
+                height: '100%',
+                background: 'linear-gradient(90deg, #8B1C1D, #c53030)',
+                borderRadius: '9999px',
+                animation: 'introProgress 4.3s linear forwards'
+              }} />
+            </div>
+
+            <div className="animate-slide-up" style={{ marginTop: '14px' }}>
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -780,7 +847,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                 color: '#64748b',
                 margin: 0
               }}>
-                Sincronizando los 5 Equipos Técnicos Jurisdiccionales
+                Cargando módulos y sincronizando 5 Equipos Técnicos...
               </p>
             </div>
 
@@ -789,7 +856,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
               onClick={() => setScreen('equipos')}
               className="touch-press"
               style={{
-                marginTop: '24px',
+                marginTop: '20px',
                 background: '#ffffff',
                 border: '1px solid #cbd5e1',
                 color: '#475569',

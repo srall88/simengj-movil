@@ -97,6 +97,11 @@ select, input {
   50% { opacity: 0.85; transform: scale(1.02); }
 }
 
+@keyframes introProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
 /* ============================================================== */
 /* ENSAMBLAJE INSTITUCIONAL CON REBOTE ELÁSTICO (SIN GIROS)       */
 /* Bloques superior izq e inferior der en Rojo #8B1C1D            */
