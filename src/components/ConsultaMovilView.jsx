@@ -52,8 +52,8 @@ const EQUIPOS_CONFIG = {
     border: '#fde68a',
     accentBg: '#fef3c7',
     desc: 'Unidades de Flagrancia Delictiva (JIP y JUP Flagrancia).',
-    labelMeta: 'Ajuste de Meta',
-    labelAvance: '% de Avance',
+    labelMeta: 'Meta Preliminar (Ajuste de Meta)',
+    labelAvance: '% de Avance (Avance de Meta)',
     insightPrefix: 'Meta Estándar Flagrancia',
     idealFijo: 100
   },
@@ -459,7 +459,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
 ⚡ *${avanceLabel}:* ${avanceValStr}
 ⏱️ *% Ideal del Mes:* ${idealVal}%
 🏆 *Nivel Resolutivo:* ${kpisActuales.nivel}
-${selectedEquipo === 'EJECUCION' ? `📋 *Carga Pendiente en Ejecución:* ${fmtNum(kpisActuales.carga_procesal_mes)}` : `📁 *Carga Procesal del Mes:* ${fmtNum(kpisActuales.carga_procesal_mes)}`}
+${selectedEquipo === 'EJECUCION' ? `📋 *Carga Pendiente en Ejecución:* ${fmtNum(kpisActuales.carga_procesal_mes)}` : `📁 *Carga Procesal en Trámite:* ${fmtNum(kpisActuales.carga_procesal_mes)}`}
 📥 *Total de Ingresos:* ${fmtNum(kpisActuales.total_ingresos !== undefined ? kpisActuales.total_ingresos : kpisActuales.ingresos_mes)} expedientes (hasta ${kpisActuales.nombre_mes})
 📥 *Ingresos del Mes:* ${fmtNum(kpisActuales.ingresos_mes)} expedientes
 🏛️ *Meta Estándar:* ${fmtNum(kpisActuales.meta_estandar)}
@@ -1893,7 +1893,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     boxShadow: '0 2px 8px rgba(249, 115, 22, 0.08)'
                   }}>
                     <div style={{ fontSize: '11px', color: '#c2410c', fontWeight: '800', marginBottom: '4px' }}>
-                      {selectedEquipo === 'EJECUCION' ? 'CARGA EN EJECUCIÓN' : 'CARGA PROCESAL DEL MES'}
+                      {selectedEquipo === 'EJECUCION' ? 'CARGA EN EJECUCIÓN' : 'CARGA PROCESAL EN TRÁMITE'}
                     </div>
                     <div style={{ fontSize: '27px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.carga_procesal_mes)}
