@@ -2795,7 +2795,7 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                       {fmtNum(kpisActuales?.carga_procesal_mes)}
                     </div>
                     <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '2px' }}>
-                      {selectedEquipo === 'EJECUCION' ? `Pendientes al mes de ${kpisActuales?.nombre_mes}` : `Carga del mes de ${kpisActuales?.nombre_mes}`}
+                      {selectedEquipo === 'EJECUCION' ? `Pendientes al mes de ${kpisActuales?.nombre_mes}` : `Suma total de todas las etapas procesales (${kpisActuales?.nombre_mes})`}
                     </div>
                   </div>
                   <div style={{
@@ -2854,62 +2854,6 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                           <div style={{ fontSize: '14px', fontWeight: '900', color: item.highlight ? '#ea580c' : '#0f172a' }}>
                             {fmtNum(item.val)}
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Si es FLAGRANCIA: Mostrar Flujo de Matriz Flagrancia */}
-                {selectedEquipo === 'FLAGRANCIA' && kpisActuales?.etapas?.matriz_flagrancia && (
-                  <div style={{
-                    background: '#f8fafc',
-                    border: '1.5px solid #e2e8f0',
-                    borderRadius: '16px',
-                    padding: '12px 14px'
-                  }}>
-                    <div style={{ fontSize: '11px', fontWeight: '800', color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
-                      📋 Flujo Matriz Flagrancia
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {[
-                        { code: 'A', label: 'Reserva al Inicio (Enero)', val: kpisActuales.etapas.matriz_flagrancia.reserva_enero },
-                        { code: 'B', label: 'Carga Inicial', val: kpisActuales.etapas.matriz_flagrancia.carga_inicial },
-                        { code: 'C', label: 'Total Ingresos al Mes', val: kpisActuales.etapas.matriz_flagrancia.total_ingresos },
-                        { code: 'D', label: 'Carga Procesal (A + B + C)', val: kpisActuales.etapas.matriz_flagrancia.carga_procesal, highlight: true },
-                        { code: 'E', label: 'Otros Egresos al Mes', val: kpisActuales.etapas.matriz_flagrancia.otros_egresos },
-                        { code: 'F', label: 'Reserva al Mes', val: kpisActuales.etapas.matriz_flagrancia.reserva },
-                        { code: 'G', label: 'Carga Procesal Real (D - E - F)', val: kpisActuales.etapas.matriz_flagrancia.carga_procesal_real },
-                        { code: 'J', label: 'Total Resueltos al Mes', val: kpisActuales.etapas.matriz_flagrancia.total_resueltos },
-                        { code: 'K', label: 'Carga Pendiente (G - J)', val: kpisActuales.etapas.matriz_flagrancia.carga_pendiente }
-                      ].map((item, idx) => (
-                        <div key={idx} style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '7px 10px',
-                          borderRadius: '8px',
-                          background: item.highlight ? '#ffedd5' : '#ffffff',
-                          border: item.highlight ? '1.5px solid #fb923c' : '1px solid #f1f5f9'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{
-                              fontSize: '9.5px',
-                              fontWeight: '800',
-                              color: item.highlight ? '#ea580c' : '#475569',
-                              background: item.highlight ? '#fff7ed' : '#f1f5f9',
-                              padding: '1px 5px',
-                              borderRadius: '4px'
-                            }}>
-                              {item.code}
-                            </span>
-                            <span style={{ fontSize: '11.5px', fontWeight: item.highlight ? '800' : '600', color: '#0f172a' }}>
-                              {item.label}
-                            </span>
-                          </div>
-                          <span style={{ fontSize: '13px', fontWeight: '800', color: item.highlight ? '#ea580c' : '#0f172a' }}>
-                            {fmtNum(item.val)}
-                          </span>
                         </div>
                       ))}
                     </div>
