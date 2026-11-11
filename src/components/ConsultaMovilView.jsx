@@ -459,7 +459,7 @@ export default function ConsultaMovilView({ onBackToDashboard }) {
 ⚡ *${avanceLabel}:* ${avanceValStr}
 ⏱️ *% Ideal del Mes:* ${idealVal}%
 🏆 *Nivel Resolutivo:* ${kpisActuales.nivel}
-${selectedEquipo === 'EJECUCION' ? `📋 *Carga Pendiente en Ejecución:* ${fmtNum(kpisActuales.carga_procesal_mes)}` : `📁 *Carga Procesal en Trámite:* ${fmtNum(kpisActuales.carga_procesal_mes)}`}
+${selectedEquipo === 'EJECUCION' ? `📋 *Carga Pendiente en Ejecución:* ${fmtNum(kpisActuales.carga_procesal_mes)}` : `📁 *Carga Procesal:* ${fmtNum(kpisActuales.carga_procesal_mes)}`}
 📥 *Total de Ingresos:* ${fmtNum(kpisActuales.total_ingresos !== undefined ? kpisActuales.total_ingresos : kpisActuales.ingresos_mes)} expedientes (hasta ${kpisActuales.nombre_mes})
 📥 *Ingresos del Mes:* ${fmtNum(kpisActuales.ingresos_mes)} expedientes
 🏛️ *Meta Estándar:* ${fmtNum(kpisActuales.meta_estandar)}
@@ -1884,22 +1884,44 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                     </div>
                   </div>
 
-                  {/* 4. Carga Procesal / Carga Pendiente en Ejecución */}
-                  <div style={{
-                    background: 'linear-gradient(145deg, #fff7ed 0%, #ffedd5 100%)',
-                    border: '1.5px solid #fb923c',
-                    borderRadius: '18px',
-                    padding: '14px 12px',
-                    boxShadow: '0 2px 8px rgba(249, 115, 22, 0.08)'
-                  }}>
-                    <div style={{ fontSize: '11px', color: '#c2410c', fontWeight: '800', marginBottom: '4px' }}>
-                      {selectedEquipo === 'EJECUCION' ? 'CARGA EN EJECUCIÓN' : 'CARGA PROCESAL EN TRÁMITE'}
+                  {/* 4. Carga Procesal / Carga Pendiente en Ejecución (INTERACTIVO -> Abre Modal de Etapas) */}
+                  <div
+                    onClick={() => setActiveModal('carga_procesal')}
+                    className="touch-press"
+                    style={{
+                      background: 'linear-gradient(145deg, #fff7ed 0%, #ffedd5 100%)',
+                      border: '2px solid #ea580c',
+                      borderRadius: '18px',
+                      padding: '14px 12px',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(234, 88, 12, 0.16)',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#c2410c', fontWeight: '800' }}>
+                        {selectedEquipo === 'EJECUCION' ? 'CARGA PENDIENTE EN EJECUCIÓN' : 'CARGA PROCESAL'}
+                      </span>
+                      <span style={{
+                        fontSize: '9.5px',
+                        background: '#ea580c',
+                        color: '#ffffff',
+                        padding: '2px 7px',
+                        borderRadius: '10px',
+                        fontWeight: '800',
+                        letterSpacing: '0.02em',
+                        boxShadow: '0 1px 4px rgba(234, 88, 12, 0.3)'
+                      }}>
+                        📁 Ver etapas ➔
+                      </span>
                     </div>
                     <div style={{ fontSize: '27px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.02em' }}>
                       {fmtNum(kpisActuales.carga_procesal_mes)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: '#475569', marginTop: '2px' }}>
-                      {selectedEquipo === 'EJECUCION' ? `Pendientes (${kpisActuales.nombre_mes})` : `En trámite (${kpisActuales.nombre_mes})`}
+                    <div style={{ fontSize: '10.5px', color: '#7c2d12', marginTop: '2px', fontWeight: '600' }}>
+                      {selectedEquipo === 'EJECUCION'
+                        ? `Pendientes al mes (${kpisActuales.nombre_mes})`
+                        : `Toca para ver etapas (${kpisActuales.nombre_mes})`}
                     </div>
                   </div>
 
@@ -2675,6 +2697,394 @@ _Fuente: SIMENGJ / UPD - Estadística CSJLE_`;
                   border: 'none',
                   cursor: 'pointer',
                   boxShadow: '0 4px 14px rgba(147, 51, 234, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>← Volver a los Indicadores</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBVENTANA 7: DESGLOSE DE ETAPAS DE LA CARGA PROCESAL          */}
+        {/* ============================================================== */}
+        {activeModal === 'carga_procesal' && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.55)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)'
+          }}>
+            <div className="animate-sheet-up" style={{
+              background: '#ffffff',
+              borderRadius: '24px 24px 0 0',
+              padding: '22px 20px calc(env(safe-area-inset-bottom, 20px) + 20px) 20px',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#ea580c', fontWeight: '800' }}>
+                    📁 DESGLOSE DE ETAPAS • {kpisActuales?.nombre_mes?.toUpperCase()} {selectedAnio}
+                  </div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '900', margin: '2px 0 0 0', color: '#0f172a' }}>
+                    {selectedEquipo === 'EJECUCION' ? 'Carga Pendiente en Ejecución' : 'Etapas de la Carga Procesal'}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    color: '#64748b',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{
+                background: '#fff7ed',
+                border: '1px solid #fed7aa',
+                borderRadius: '12px',
+                padding: '8px 12px',
+                fontSize: '12px',
+                color: '#9a3412',
+                marginBottom: '12px',
+                lineHeight: '1.4'
+              }}>
+                🏛️ <strong>{dependenciaActual?.dependencia}</strong>
+              </div>
+
+              {/* Contenido scrolleable del desglose */}
+              <div className="no-scrollbar" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                
+                {/* Banner Resumen */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 12px rgba(234, 88, 12, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.9, fontWeight: '700' }}>
+                      {selectedEquipo === 'EJECUCION' ? 'Carga Pendiente en Ejecución' : 'Total Carga Procesal'}
+                    </div>
+                    <div style={{ fontSize: '26px', fontWeight: '900', letterSpacing: '-0.02em', marginTop: '2px' }}>
+                      {fmtNum(kpisActuales?.carga_procesal_mes)}
+                    </div>
+                    <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '2px' }}>
+                      {selectedEquipo === 'EJECUCION' ? `Pendientes al mes de ${kpisActuales?.nombre_mes}` : `Carga del mes de ${kpisActuales?.nombre_mes}`}
+                    </div>
+                  </div>
+                  <div style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '12px',
+                    background: 'rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '22px'
+                  }}>
+                    ⚖️
+                  </div>
+                </div>
+
+                {/* Si es EJECUCIÓN: Mostrar Matriz de Ejecución Oficial */}
+                {selectedEquipo === 'EJECUCION' && kpisActuales?.etapas?.matriz_ejecucion && (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '12px 14px'
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: '800', color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
+                      📊 Matriz de Ejecución Oficial
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {[
+                        { label: 'Carga Inicial (Enero)', val: kpisActuales.etapas.matriz_ejecucion.carga_inicial, desc: 'Expedientes iniciales en ejecución', icon: '📥' },
+                        { label: 'Ingresos del Mes', val: kpisActuales.etapas.matriz_ejecucion.ingresos, desc: `Consentidas (${kpisActuales.etapas.matriz_ejecucion.rescons || 0}) • Con Ejecución (${kpisActuales.etapas.matriz_ejecucion.conejec || 0})`, icon: '➕' },
+                        { label: 'Carga Procesal en Ejecución', val: kpisActuales.etapas.matriz_ejecucion.carga_procesal, desc: 'Carga procesal total del periodo', icon: '📂' },
+                        { label: 'Resueltos del Mes', val: kpisActuales.etapas.matriz_ejecucion.resueltos, desc: 'Expedientes concluidos en ejecución', icon: '✓' },
+                        { label: 'Carga Pendiente en Ejecución', val: kpisActuales.etapas.matriz_ejecucion.pendientes, desc: 'Expedientes pendientes actuales', icon: '⭐', highlight: true }
+                      ].map((item, idx) => (
+                        <div key={idx} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          background: item.highlight ? '#ffedd5' : '#ffffff',
+                          border: item.highlight ? '1.5px solid #fb923c' : '1px solid #f1f5f9'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '14px' }}>{item.icon}</span>
+                            <div>
+                              <div style={{ fontSize: '12px', fontWeight: item.highlight ? '800' : '700', color: item.highlight ? '#9a3412' : '#0f172a' }}>
+                                {item.label}
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#64748b' }}>
+                                {item.desc}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '14px', fontWeight: '900', color: item.highlight ? '#ea580c' : '#0f172a' }}>
+                            {fmtNum(item.val)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Si es FLAGRANCIA: Mostrar Flujo de Matriz Flagrancia */}
+                {selectedEquipo === 'FLAGRANCIA' && kpisActuales?.etapas?.matriz_flagrancia && (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '12px 14px'
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: '800', color: '#475569', marginBottom: '8px', textTransform: 'uppercase' }}>
+                      📋 Flujo Matriz Flagrancia
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {[
+                        { code: 'A', label: 'Reserva al Inicio (Enero)', val: kpisActuales.etapas.matriz_flagrancia.reserva_enero },
+                        { code: 'B', label: 'Carga Inicial', val: kpisActuales.etapas.matriz_flagrancia.carga_inicial },
+                        { code: 'C', label: 'Total Ingresos al Mes', val: kpisActuales.etapas.matriz_flagrancia.total_ingresos },
+                        { code: 'D', label: 'Carga Procesal (A + B + C)', val: kpisActuales.etapas.matriz_flagrancia.carga_procesal, highlight: true },
+                        { code: 'E', label: 'Otros Egresos al Mes', val: kpisActuales.etapas.matriz_flagrancia.otros_egresos },
+                        { code: 'F', label: 'Reserva al Mes', val: kpisActuales.etapas.matriz_flagrancia.reserva },
+                        { code: 'G', label: 'Carga Procesal Real (D - E - F)', val: kpisActuales.etapas.matriz_flagrancia.carga_procesal_real },
+                        { code: 'J', label: 'Total Resueltos al Mes', val: kpisActuales.etapas.matriz_flagrancia.total_resueltos },
+                        { code: 'K', label: 'Carga Pendiente (G - J)', val: kpisActuales.etapas.matriz_flagrancia.carga_pendiente }
+                      ].map((item, idx) => (
+                        <div key={idx} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          background: item.highlight ? '#ffedd5' : '#ffffff',
+                          border: item.highlight ? '1.5px solid #fb923c' : '1px solid #f1f5f9'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{
+                              fontSize: '9.5px',
+                              fontWeight: '800',
+                              color: item.highlight ? '#ea580c' : '#475569',
+                              background: item.highlight ? '#fff7ed' : '#f1f5f9',
+                              padding: '1px 5px',
+                              borderRadius: '4px'
+                            }}>
+                              {item.code}
+                            </span>
+                            <span style={{ fontSize: '11.5px', fontWeight: item.highlight ? '800' : '600', color: '#0f172a' }}>
+                              {item.label}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '13px', fontWeight: '800', color: item.highlight ? '#ea580c' : '#0f172a' }}>
+                            {fmtNum(item.val)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Multietapas Judiciales SIJ (En Trámite, En Calificación, En Ejecución, Plazo de Impugnación, En Tránsito, En Reserva) */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '16px',
+                  padding: '12px 14px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>
+                      ⚖️ Multietapas Procesales SIJ
+                    </div>
+                    <div style={{ fontSize: '10.5px', fontWeight: '700', color: '#64748b' }}>
+                      Total: {fmtNum(kpisActuales?.etapas?.total || kpisActuales?.carga_procesal_mes)} exp.
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const et = kpisActuales?.etapas || {};
+                    const totalEtapas = Number(et.total || (Number(et.tramite || 0) + Number(et.calificacion || 0) + Number(et.ejecucion || 0) + Number(et.plazo_impugnacion || 0) + Number(et.transito || 0) + Number(et.reserva || 0))) || 1;
+                    
+                    const listaEtapas = [
+                      {
+                        key: 'tramite',
+                        nombre: 'En Trámite',
+                        val: Number(et.tramite || 0),
+                        icon: '⚖️',
+                        color: '#0284c7',
+                        bg: '#f0f9ff',
+                        desc: 'Expedientes en giro procesal activo'
+                      },
+                      {
+                        key: 'calificacion',
+                        nombre: 'En Calificación',
+                        val: Number(et.calificacion || 0),
+                        icon: '📑',
+                        color: '#8b5cf6',
+                        bg: '#f5f3ff',
+                        desc: 'Escritos o demandas en calificación inicial'
+                      },
+                      {
+                        key: 'ejecucion',
+                        nombre: 'En Ejecución',
+                        val: Number(et.ejecucion || 0),
+                        icon: '🔨',
+                        color: '#ea580c',
+                        bg: '#fff7ed',
+                        desc: 'Mandatos judiciales en etapa de ejecución'
+                      },
+                      {
+                        key: 'plazo_impugnacion',
+                        nombre: 'Plazo de Impugnación',
+                        val: Number(et.plazo_impugnacion || 0),
+                        icon: '⏱️',
+                        color: '#d97706',
+                        bg: '#fffbeb',
+                        desc: 'Expedientes en plazo de apelación o recurso'
+                      },
+                      {
+                        key: 'transito',
+                        nombre: 'En Tránsito',
+                        val: Number(et.transito || 0),
+                        icon: '🔄',
+                        color: '#059669',
+                        bg: '#ecfdf5',
+                        desc: 'Remitidos transitoriamente / notificaciones'
+                      },
+                      {
+                        key: 'reserva',
+                        nombre: 'En Reserva',
+                        val: Number(et.reserva || 0),
+                        icon: '⏸️',
+                        color: '#64748b',
+                        bg: '#f1f5f9',
+                        desc: 'Expedientes en reserva o archivo provisional'
+                      }
+                    ];
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {listaEtapas.map(etapaItem => {
+                          const pct = totalEtapas > 0 ? ((etapaItem.val / totalEtapas) * 100) : 0;
+                          const pctStr = pct > 0 ? (pct >= 10 ? pct.toFixed(0) : pct.toFixed(1)) : '0';
+                          return (
+                            <div
+                              key={etapaItem.key}
+                              style={{
+                                background: '#ffffff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '12px',
+                                padding: '10px 12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '8px',
+                                    background: etapaItem.bg,
+                                    color: etapaItem.color,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '14px'
+                                  }}>
+                                    {etapaItem.icon}
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
+                                      {etapaItem.nombre}
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: '#64748b' }}>
+                                      {etapaItem.desc}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#0f172a' }}>
+                                    {fmtNum(etapaItem.val)}
+                                  </div>
+                                  <div style={{ fontSize: '10px', fontWeight: '800', color: etapaItem.color }}>
+                                    {pctStr}% del total
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Barra de progreso */}
+                              <div style={{
+                                width: '100%',
+                                height: '5px',
+                                background: '#f1f5f9',
+                                borderRadius: '999px',
+                                overflow: 'hidden'
+                              }}>
+                                <div style={{
+                                  width: `${Math.min(100, Math.max(0, pct))}%`,
+                                  height: '100%',
+                                  background: etapaItem.color,
+                                  borderRadius: '999px',
+                                  transition: 'width 0.4s ease'
+                                }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+              </div>
+
+              {/* Botón Salir / Volver a los KPIs */}
+              <button
+                onClick={() => setActiveModal(null)}
+                className="touch-press"
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(234, 88, 12, 0.35)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
